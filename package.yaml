@@ -13,6 +13,7 @@ description:         Please see the README
 
 dependencies:
 - base
+- containers
 
 library:
   source-dirs: src

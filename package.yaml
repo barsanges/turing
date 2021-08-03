@@ -1,0 +1,18 @@
+name:                turing
+version:             0.1.0
+license:             GPL-3.0
+author:              barsanges
+maintainer:          https://github.com/barsanges
+copyright:           2021 barsanges
+
+extra-source-files:
+- README.md
+
+synopsis:            Turing is a simple solver for mathematical puzzles
+description:         Please see the README
+
+dependencies:
+- base
+
+library:
+  source-dirs: src

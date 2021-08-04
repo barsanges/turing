@@ -11,7 +11,7 @@ module Commons.Iterator (
   solveWithIt
   ) where
 
-import Data.Sequence ( Seq(..), (|>) )
+import Data.Sequence ( Seq(..), (|>), fromList )
 import Commons.Solve ( solve )
 
 -- | Cyclic iterator over an object 'u' indexed by 'a's.
@@ -34,14 +34,14 @@ nextIt f (It (a :<| as) g) = case f g a of
 solveWithIt :: (Integral n, Functor t, Foldable t)
             => n                              -- ^ Number of iterations before giving up
             -> grid                           -- ^ Initial puzzle
-            -> Seq a                          -- ^ Every view's key
+            -> [a]                            -- ^ Every view's key
             -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
             -> t (view -> view)               -- ^ Set of rules to use to shrink the grid
             -> (view -> grid)                 -- ^ Get the full puzzle
             -> Maybe grid
 solveWithIt limit g0 as next shrinks unview =
 
-  case solve limit (It as g0) next' shrinks' unview' of
+  case solve limit (It (fromList as) g0) next' shrinks' unview' of
     Just (It _ g) -> Just g
     Nothing -> Nothing
 

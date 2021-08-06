@@ -175,5 +175,5 @@ unview v = Sk (grid v)
 solveSudoku :: Integral n
             => n            -- ^ Number of iterations before giving up
             -> Sudoku       -- ^ Initial grid
-            -> Maybe Sudoku
+            -> Either Sudoku Sudoku
 solveSudoku limit g0 = solveWithIt limit g0 allViews select rules unview

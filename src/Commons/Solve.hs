@@ -17,13 +17,13 @@ solve :: (Integral n, Foldable t)
       -> (grid -> Maybe view)      -- ^ Get a part of the puzzle to solve
       -> t (view -> view)          -- ^ Set of rules to use to shrink the grid
       -> (view -> grid)            -- ^ Get the full puzzle
-      -> Maybe grid
+      -> Either grid grid
 solve limit g0 next shrinks unview = go 0 g0
 
   where
 
     go n g = case next g of
-      Nothing -> Just g
+      Nothing -> Right g
       Just v -> if n > limit
-        then Nothing
+        then Left g
         else go (n + 1) (unview $ foldr ($) v shrinks)

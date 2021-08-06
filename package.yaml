@@ -14,6 +14,7 @@ description:         Please see the README
 dependencies:
 - base
 - containers
+- vector
 
 library:
   source-dirs: src

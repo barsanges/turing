@@ -27,7 +27,7 @@ nextIt :: (grid -> a -> Maybe view)
 nextIt _ (It Empty _) = Nothing
 nextIt f (It (a :<| as) g) = case f g a of
   Just v -> Just (It (as |> a) v)
-  Nothing -> Nothing
+  Nothing -> nextIt f (It as g)
 
 -- | Solve a mathematical puzzle by iterating over all the different views of
 -- the grid.

@@ -13,6 +13,7 @@ module Commons.Cell (
   size,
   difference,
   difference',
+  notIn,
   toChar
   ) where
 
@@ -54,6 +55,15 @@ difference h s = case S.toList (S.difference (toSet h) s) of
 -- the second one. Return 'Nothing' when the difference is empty.
 difference' :: Ord a => Hole a -> Hole a -> Maybe (Cell a)
 difference' h h' = difference h (toSet h')
+
+-- | Return an element from the hole that is not in the set.
+notIn :: Ord a => Hole a -> S.Set a -> Maybe a
+notIn h s = foldr go Nothing (toSet h)
+  where
+    go x Nothing = if S.notMember x s
+                   then Just x
+                   else Nothing
+    go _ (Just y) = Just y
 
 -- | Turn a cell containing a digit into a character.
 toChar :: Cell Digit -> Char

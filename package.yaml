@@ -18,3 +18,11 @@ dependencies:
 
 library:
   source-dirs: src
+
+tests:
+  turing-test:
+    main:                Spec.hs
+    source-dirs:         test
+    dependencies:
+    - turing
+    - hspec

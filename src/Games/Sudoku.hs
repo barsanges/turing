@@ -18,7 +18,8 @@ module Games.Sudoku (
 import Data.Either ( lefts, rights )
 import qualified Data.Set as S
 import Data.Vector ( Vector, (!), (//), generateM )
-import Commons.Cell ( Hole, Cell, fromSet, size, difference, difference', toChar )
+import Commons.Cell ( Hole, Cell, fromSet, toSet, size, difference, difference',
+                      notIn, toChar )
 import Commons.Digit ( Digit(..) )
 import Commons.Iterator ( solveWithIt )
 
@@ -28,14 +29,16 @@ newtype Sudoku = Sk (Vector (Cell Digit))
 
 -- | A view of the grid, focused on a specific cell within a specific area.
 data View = View { focus :: Int
-                 , neighbors :: [Int]
+                 , dir :: Dir
                  , grid :: Vector (Cell Digit)
                  }
+  deriving Show
 
 -- | The "direction" of a view of the grid.
 data Dir = Column
          | Row
          | Block
+  deriving Show
 
 -- | Parse a string into a Sudoku grid.
 fromString :: String -> Maybe Sudoku
@@ -94,31 +97,48 @@ allViews :: [(Int, Dir)]
 allViews = [(i, d) | i <- [0..80]
                    , d <- [Column, Row, Block]]
 
--- | Select a view of a grid.
-select :: Sudoku -> (Int, Dir) -> Maybe View
-select (Sk vec) (i, d) = case vec ! i of
-  Left _ -> Nothing -- The cell is already known.
-  Right _ -> Just (View { focus = i
-                        , neighbors = ngb
-                        , grid = vec
-                        })
+-- | Get the indices of all cells in either the same row, the same column or
+-- the same block than the given cell.
+neighbors :: Int -> Dir -> [Int]
+neighbors i d = case d of
+  Column -> [p * 9 + col | p <- [0..8]
+                         , p /= row]
+  Row -> [row * 9 + q | q <- [0..8]
+                      , q /= col]
+  Block -> [p * 9 + q | p <- [(3 * br)..(3 * br + 2)]
+                      , q <- [(3 * bc)..(3 * bc + 2)]
+                      , p /= row || q /= col]
   where
     row = i `div` 9
     br = row `div` 3
     col = i `mod` 9
     bc = col `div` 3
-    ngb = case d of
-      Column -> [p * 9 + col | p <- [0..8]
-                             , p /= row]
-      Row -> [row * 9 + q | q <- [0..8]
-                          , q /= col]
-      Block -> [p * 9 + q | p <- [(3 * br)..(3 * br + 2)]
-                          , q <- [(3 * bc)..(3 * bc + 2)]
-                          , p /= row && q /= col]
 
--- | Get all the neighbors of the focus cell.
+-- | Get the indices of all cells in the same row, column or block than the
+-- given cell.
+allNeighbors :: Int -> S.Set Int
+allNeighbors i = S.unions [col, row, block]
+  where
+    col = S.fromList (neighbors i Column)
+    row = S.fromList (neighbors i Row)
+    block = S.fromList (neighbors i Block)
+
+-- | Select a view of a grid.
+select :: Sudoku -> (Int, Dir) -> Maybe View
+select (Sk vec) (i, d) = case vec ! i of
+  Left _ -> Nothing -- The cell is already known.
+  Right _ -> Just (View { focus = i
+                        , dir = d
+                        , grid = vec
+                        })
+
+-- | Get all the neighbors (in the current direction) of the focus cell.
 see :: View -> [Cell Digit]
-see v = fmap ((!) (grid v)) (neighbors v)
+see v = fmap ((!) (grid v)) (neighbors (focus v) (dir v))
+
+-- | Get all the neighbors (in all directions) of the focus cell.
+seeAll :: View -> [Cell Digit]
+seeAll v = fmap ((!) (grid v)) (S.toList (allNeighbors (focus v)))
 
 -- | A digit can appear only once in a view.
 unique :: View -> View
@@ -132,6 +152,22 @@ unique v = case vec ! i of
     vec = grid v
     known = S.fromList (lefts (see v))
 
+-- | Only one cell may be available for a digit.
+only :: View -> View
+only v = case vec ! i of
+  Left _ -> v
+  Right hole -> case notIn hole others of
+    Nothing -> v
+    Just x -> if S.notMember x known
+              then v { grid = vec // [(i, Left x)] }
+              else v
+  where
+    i = focus v
+    vec = grid v
+    known = S.fromList (lefts (seeAll v))
+    unknown = rights (see v)
+    others = S.unions (fmap toSet unknown)
+
 -- | Some cells may constitute a subset independant of the other cells of the
 -- view.
 subset :: View -> View
@@ -144,7 +180,7 @@ subset v = case vec ! i of
   where
 
     i = focus v
-    ngb = neighbors v
+    ngb = neighbors (focus v) (dir v)
     vec = grid v
     unknown = rights (see v)
 
@@ -165,7 +201,7 @@ subset v = case vec ! i of
 
 -- | Rules to apply to increase the available information on a view.
 rules :: [View -> View]
-rules = [unique, subset]
+rules = [unique, only, subset]
 
 -- | Get the grid behind the given view.
 unview :: View -> Sudoku

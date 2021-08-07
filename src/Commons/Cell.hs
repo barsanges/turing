@@ -9,6 +9,7 @@ Type representing a cell in a grid, whose value can either be known or unknown.
 module Commons.Cell (
   Hole,
   fromSet,
+  toSet,
   Cell,
   size,
   difference,

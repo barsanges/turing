@@ -97,6 +97,7 @@ upperBound h x = holeFilter (\ y -> y < x) h
 
 -- | Turn a cell containing a digit into a character.
 toChar :: Cell Digit -> Char
+toChar (Left Zero) = '0'
 toChar (Left One) = '1'
 toChar (Left Two) = '2'
 toChar (Left Three) = '3'

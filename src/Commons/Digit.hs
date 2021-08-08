@@ -3,7 +3,7 @@
    Copyright   : Copyright (C) 2021 barsanges
    License     : GNU GPL, version 3
 
-Digits from 1 to 9.
+Digits from 0 to 9.
 -}
 
 module Commons.Digit (
@@ -20,6 +20,7 @@ data Digit = One
            | Seven
            | Eight
            | Nine
+           | Zero
   deriving (Eq, Ord)
 
 instance Show Digit where
@@ -32,3 +33,4 @@ instance Show Digit where
   show Seven = "7"
   show Eight = "8"
   show Nine = "9"
+  show Zero = "0"

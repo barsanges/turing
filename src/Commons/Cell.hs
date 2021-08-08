@@ -15,7 +15,11 @@ module Commons.Cell (
   difference,
   difference',
   notIn,
-  toChar
+  toChar,
+  cellMin,
+  cellMax,
+  lowerBound,
+  upperBound
   ) where
 
 import qualified Data.Set as S
@@ -65,6 +69,31 @@ notIn h s = foldr go Nothing (toSet h)
                    then Just x
                    else Nothing
     go _ (Just y) = Just y
+
+-- | Return the minimal possible value in the cell.
+cellMin :: Ord a => Cell a -> a
+cellMin (Left x) = x
+cellMin (Right h) = minimum (toSet h)
+
+-- | Return the maximal possible value in the cell.
+cellMax :: Ord a => Cell a -> a
+cellMax (Left x) = x
+cellMax (Right h) = maximum (toSet h)
+
+-- | Filter all elements that satisfy the predicate.
+holeFilter :: Ord a => (a -> Bool) -> Hole a -> Maybe (Cell a)
+holeFilter f h = case S.toList (S.filter f (toSet h)) of
+  [] -> Nothing
+  [x] -> Just (Left x)
+  (x1:x2:xs) -> Just (Right (Hole x1 x2 (S.fromList xs)))
+
+-- | Remove all possible values lower than a given value.
+lowerBound :: Ord a => Hole a -> a -> Maybe (Cell a)
+lowerBound h x = holeFilter (\ y -> y > x) h
+
+-- | Remove all possible values higher than a given value.
+upperBound :: Ord a => Hole a -> a -> Maybe (Cell a)
+upperBound h x = holeFilter (\ y -> y < x) h
 
 -- | Turn a cell containing a digit into a character.
 toChar :: Cell Digit -> Char

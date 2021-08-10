@@ -11,6 +11,7 @@ module Commons.Cell (
   hFromSet,
   hToSet,
   Cell,
+  cToSet,
   hSize,
   hDifference,
   hDifference',
@@ -18,6 +19,7 @@ module Commons.Cell (
   cToChar,
   cMin,
   cMax,
+  cFilter,
   hFilter,
   hLowerBound,
   hUpperBound
@@ -44,6 +46,11 @@ hSize (Hole _ _ s) = 2 + S.size s
 -- | Build a hole from a set.
 hFromSet :: a -> a -> S.Set a -> Hole a
 hFromSet x y s = Hole x y s
+
+-- | Turn a cell into a set.
+cToSet :: Ord a => Cell a -> S.Set a
+cToSet (Left x) = S.singleton x
+cToSet (Right h) = hToSet h
 
 -- | Turn a hole into a set.
 hToSet :: Ord a => Hole a -> S.Set a
@@ -80,6 +87,14 @@ cMin (Right h) = minimum (hToSet h)
 cMax :: Ord a => Cell a -> a
 cMax (Left x) = x
 cMax (Right h) = maximum (hToSet h)
+
+-- | Filter all elements that satisfy the predicate if the cell is a hole. If
+-- the cell is an unique value, 'cFilter f == id'.
+cFilter :: Ord a => (a -> Bool) -> Cell a -> Cell a
+cFilter _ (Left x) = Left x
+cFilter f (Right h) = case hFilter f h of
+  Nothing -> Right h
+  Just c -> c
 
 -- | Filter all elements that satisfy the predicate.
 hFilter :: Ord a => (a -> Bool) -> Hole a -> Maybe (Cell a)

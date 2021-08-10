@@ -200,8 +200,8 @@ subset v = case vec ! i of
             else (j, Right h')
 
 -- | Rules to apply to increase the available information on a view.
-rules :: [View -> View]
-rules = [unique, only, subset]
+shrink :: View -> View
+shrink = unique . only . subset
 
 -- | Get the grid behind the given view.
 unview :: View -> Sudoku
@@ -212,4 +212,4 @@ solveSudoku :: Integral n
             => n            -- ^ Number of iterations before giving up
             -> Sudoku       -- ^ Initial grid
             -> Either Sudoku Sudoku
-solveSudoku limit g0 = solveWithIt limit g0 allViews select rules unview
+solveSudoku limit g0 = solveWithIt limit g0 allViews select shrink unview

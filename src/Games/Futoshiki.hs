@@ -294,8 +294,8 @@ subset v = case vec ! i of
             else (j, Right h')
 
 -- | Rules to apply to increase the available information on a view.
-rules :: [View -> View]
-rules = [comparison, unique, only, subset]
+shrink :: View -> View
+shrink = comparison . unique . only . subset
 
 -- | Get the grid behind the given view.
 unview :: View -> Futoshiki
@@ -308,4 +308,4 @@ solveFutoshiki :: Integral n
                => n               -- ^ Number of iterations before giving up
                -> Futoshiki       -- ^ Initial grid
                -> Either Futoshiki Futoshiki
-solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select rules unview
+solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select shrink unview

@@ -31,22 +31,22 @@ nextIt f (It (a :<| as) g) = case f g a of
 
 -- | Solve a mathematical puzzle by iterating over all the different views of
 -- the grid.
-solveWithIt :: (Integral n, Functor t, Foldable t)
+solveWithIt :: Integral n
             => n                              -- ^ Number of iterations before giving up
             -> grid                           -- ^ Initial puzzle
             -> [a]                            -- ^ Every view's key
             -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
-            -> t (view -> view)               -- ^ Set of rules to use to shrink the grid
+            -> (view -> view)                 -- ^ Set of rules to use to shrink the grid
             -> (view -> grid)                 -- ^ Get the full puzzle
             -> Either grid grid
-solveWithIt limit g0 as next shrinks unview =
+solveWithIt limit g0 as next shrink unview =
 
-  case solve limit (It (fromList as) g0) next' shrinks' unview' of
+  case solve limit (It (fromList as) g0) next' shrink' unview' of
     Left (It _ g) -> Left g
     Right (It _ g) -> Right g
 
   where
 
     next' = nextIt next
-    shrinks' = fmap fmap shrinks
+    shrink' = fmap shrink
     unview' = fmap unview

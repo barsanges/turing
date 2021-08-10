@@ -11,14 +11,14 @@ module Commons.Solve (
   ) where
 
 -- | Solve a mathematical puzzle.
-solve :: (Integral n, Foldable t)
+solve :: Integral n
       => n                         -- ^ Number of iterations before giving up
       -> grid                      -- ^ Initial puzzle
       -> (grid -> Maybe view)      -- ^ Get a part of the puzzle to solve
-      -> t (view -> view)          -- ^ Set of rules to use to shrink the grid
+      -> (view -> view)            -- ^ Rule to use to shrink the grid
       -> (view -> grid)            -- ^ Get the full puzzle
       -> Either grid grid
-solve limit g0 next shrinks unview = go 0 g0
+solve limit g0 next shrink unview = go 0 g0
 
   where
 
@@ -26,4 +26,4 @@ solve limit g0 next shrinks unview = go 0 g0
       Nothing -> Right g
       Just v -> if n > limit
         then Left g
-        else go (n + 1) (unview $ foldr ($) v shrinks)
+        else go (n + 1) (unview $ shrink v)

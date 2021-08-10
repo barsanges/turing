@@ -7,7 +7,8 @@ Digits from 0 to 9.
 -}
 
 module Commons.Digit (
-  Digit(..)
+  Digit(..),
+  toInt
   ) where
 
 -- | Digit from 1 to 9.
@@ -34,3 +35,16 @@ instance Show Digit where
   show Eight = "8"
   show Nine = "9"
   show Zero = "0"
+
+-- | Convert the digit to an int.
+toInt :: Digit -> Int
+toInt Zero = 0
+toInt One = 1
+toInt Two = 2
+toInt Three = 3
+toInt Four = 4
+toInt Five = 5
+toInt Six = 6
+toInt Seven = 7
+toInt Eight = 8
+toInt Nine = 9

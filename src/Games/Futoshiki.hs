@@ -19,8 +19,9 @@ import Data.Either ( lefts, rights )
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.Vector ( Vector, (!), (//), fromList )
-import Commons.Cell ( Hole, Cell, fromSet, toSet, size, difference, difference',
-                      notIn, toChar, cellMin, cellMax, lowerBound, upperBound )
+import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
+                      hDifference', hNotIn, cToChar, cMin, cMax, hLowerBound,
+                      hUpperBound )
 import Commons.Digit ( Digit(..) )
 import Commons.Iterator ( solveWithIt )
 
@@ -85,10 +86,10 @@ consume (c:cs) row col (xs, sgn) = do
     cellFromChar '4' = Just (Left Four)
     cellFromChar '5' = Just (Left Five)
     cellFromChar '6' = Just (Left Six)
-    cellFromChar '_' = Just (Right (fromSet One Two (S.fromList [Three,
-                                                                 Four,
-                                                                 Five,
-                                                                 Six])))
+    cellFromChar '_' = Just (Right (hFromSet One Two (S.fromList [Three,
+                                                                  Four,
+                                                                  Five,
+                                                                  Six])))
     cellFromChar _ = Nothing
 
     parseSign :: (M.Map (Int, Int) Sign)
@@ -135,7 +136,7 @@ toString f =
   where
 
     d :: Int -> Char
-    d i = toChar ((grid f) ! i)
+    d i = cToChar ((grid f) ! i)
 
     h :: Int -> Int -> Char
     h i j = case M.lookup (i, j) (signs f) of
@@ -219,8 +220,8 @@ comparison v = case vec ! i of
       where
         y = vec ! j
         mnew = case relation v i j of
-                 Gt -> lowerBound hole (cellMin y)
-                 Lt -> upperBound hole (cellMax y)
+                 Gt -> hLowerBound hole (cMin y)
+                 Lt -> hUpperBound hole (cMax y)
 
   where
 
@@ -233,7 +234,7 @@ unique v = case vec ! i of
   Left _ -> v
   Right hole -> case dir v of
     Comp _ -> v
-    _ -> case difference hole known of
+    _ -> case hDifference hole known of
       Nothing -> v
       Just new -> v { vgrid = vec // [(i, new)] }
   where
@@ -247,7 +248,7 @@ only v = case vec ! i of
   Left _ -> v
   Right hole -> case dir v of
     Comp _ -> v
-    _ -> case notIn hole others of
+    _ -> case hNotIn hole others of
       Nothing -> v
       Just x -> if S.notMember x known
                 then v { vgrid = vec // [(i, Left x)] }
@@ -257,7 +258,7 @@ only v = case vec ! i of
     vec = vgrid v
     known = S.fromList (lefts (seeAll v))
     unknown = rights (see v)
-    others = S.unions (fmap toSet unknown)
+    others = S.unions (fmap hToSet unknown)
 
 -- | Some cells may constitute a subset independant of the other cells of the
 -- view.
@@ -266,7 +267,7 @@ subset v = case vec ! i of
   Left _ -> v
   Right hole -> case dir v of
     Comp _ -> v
-    _ -> if 1 + length (identical hole) == size hole
+    _ -> if 1 + length (identical hole) == hSize hole
          then v { vgrid = vec // (newNeighbors hole) }
          else v
 
@@ -287,7 +288,7 @@ subset v = case vec ! i of
         go j = case vec ! j of
           Left x -> (j, Left x)
           Right h' -> if h' /= h
-            then case difference' h' h of
+            then case hDifference' h' h of
                    Nothing -> (j, Right h')
                    Just c -> (j, c)
             else (j, Right h')

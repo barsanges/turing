@@ -18,8 +18,8 @@ module Games.Sudoku (
 import Data.Either ( lefts, rights )
 import qualified Data.Set as S
 import Data.Vector ( Vector, (!), (//), generateM )
-import Commons.Cell ( Hole, Cell, fromSet, toSet, size, difference, difference',
-                      notIn, toChar )
+import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
+                      hDifference', hNotIn, cToChar )
 import Commons.Digit ( Digit(..) )
 import Commons.Iterator ( solveWithIt )
 
@@ -63,13 +63,13 @@ fromString s0 = if length s1 == 81
     fromChar '_' = Just (none)
     fromChar _ = Nothing
 
-    none = Right (fromSet One Two (S.fromList [Three,
-                                               Four,
-                                               Five,
-                                               Six,
-                                               Seven,
-                                               Eight,
-                                               Nine]))
+    none = Right (hFromSet One Two (S.fromList [Three,
+                                                Four,
+                                                Five,
+                                                Six,
+                                                Seven,
+                                                Eight,
+                                                Nine]))
 
 -- | Turn a Sudoku grid into a string.
 toString :: Sudoku -> String
@@ -90,7 +90,7 @@ toString (Sk vec) =
   , "-------------"
   ]
   where
-    f i = toChar (vec ! i)
+    f i = cToChar (vec ! i)
 
 -- | Indexers for all possible views of a grid.
 allViews :: [(Int, Dir)]
@@ -144,7 +144,7 @@ seeAll v = fmap ((!) (grid v)) (S.toList (allNeighbors (focus v)))
 unique :: View -> View
 unique v = case vec ! i of
   Left _ -> v
-  Right hole -> case difference hole known of
+  Right hole -> case hDifference hole known of
     Nothing -> v
     Just new -> v { grid = vec // [(i, new)] }
   where
@@ -156,7 +156,7 @@ unique v = case vec ! i of
 only :: View -> View
 only v = case vec ! i of
   Left _ -> v
-  Right hole -> case notIn hole others of
+  Right hole -> case hNotIn hole others of
     Nothing -> v
     Just x -> if S.notMember x known
               then v { grid = vec // [(i, Left x)] }
@@ -166,14 +166,14 @@ only v = case vec ! i of
     vec = grid v
     known = S.fromList (lefts (seeAll v))
     unknown = rights (see v)
-    others = S.unions (fmap toSet unknown)
+    others = S.unions (fmap hToSet unknown)
 
 -- | Some cells may constitute a subset independant of the other cells of the
 -- view.
 subset :: View -> View
 subset v = case vec ! i of
   Left _ -> v
-  Right hole -> if 1 + length (identical hole) == size hole
+  Right hole -> if 1 + length (identical hole) == hSize hole
     then v { grid = vec // (newNeighbors hole) }
     else v
 
@@ -194,7 +194,7 @@ subset v = case vec ! i of
         go j = case vec ! j of
           Left x -> (j, Left x)
           Right h' -> if h' /= h
-            then case difference' h' h of
+            then case hDifference' h' h of
                    Nothing -> (j, Right h')
                    Just c -> (j, c)
             else (j, Right h')

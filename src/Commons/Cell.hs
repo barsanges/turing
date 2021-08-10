@@ -8,19 +8,19 @@ Type representing a cell in a grid, whose value can either be known or unknown.
 
 module Commons.Cell (
   Hole,
-  fromSet,
-  toSet,
+  hFromSet,
+  hToSet,
   Cell,
-  size,
-  difference,
-  difference',
-  notIn,
-  toChar,
-  cellMin,
-  cellMax,
+  hSize,
+  hDifference,
+  hDifference',
+  hNotIn,
+  cToChar,
+  cMin,
+  cMax,
   hFilter,
-  lowerBound,
-  upperBound
+  hLowerBound,
+  hUpperBound
   ) where
 
 import qualified Data.Set as S
@@ -32,39 +32,39 @@ data Hole a = Hole a a (S.Set a)
   deriving Show
 
 instance (Eq a, Ord a) => Eq (Hole a) where
-  h == h' = (toSet h) == (toSet h')
+  h == h' = (hToSet h) == (hToSet h')
 
 -- | A cell in a grid, whose value can either be known or unknown.
 type Cell a = Either a (Hole a)
 
 -- | The number of elements in the hole.
-size :: Hole a -> Int
-size (Hole _ _ s) = 2 + S.size s
+hSize :: Hole a -> Int
+hSize (Hole _ _ s) = 2 + S.size s
 
 -- | Build a hole from a set.
-fromSet :: a -> a -> S.Set a -> Hole a
-fromSet x y s = Hole x y s
+hFromSet :: a -> a -> S.Set a -> Hole a
+hFromSet x y s = Hole x y s
 
 -- | Turn a hole into a set.
-toSet :: Ord a => Hole a -> S.Set a
-toSet (Hole x y s) = S.insert x (S.insert y s)
+hToSet :: Ord a => Hole a -> S.Set a
+hToSet (Hole x y s) = S.insert x (S.insert y s)
 
 -- | Difference of a hole and a set: return elements of the hole not existing in
 -- the set. Return 'Nothing' when the difference is empty.
-difference :: Ord a => Hole a -> S.Set a -> Maybe (Cell a)
-difference h s = case S.toList (S.difference (toSet h) s) of
+hDifference :: Ord a => Hole a -> S.Set a -> Maybe (Cell a)
+hDifference h s = case S.toList (S.difference (hToSet h) s) of
   [] -> Nothing
   [x] -> Just (Left x)
   (x1:x2:xs) -> Just (Right (Hole x1 x2 (S.fromList xs)))
 
 -- | Difference of two holes: return elements of the first hole not existing in
 -- the second one. Return 'Nothing' when the difference is empty.
-difference' :: Ord a => Hole a -> Hole a -> Maybe (Cell a)
-difference' h h' = difference h (toSet h')
+hDifference' :: Ord a => Hole a -> Hole a -> Maybe (Cell a)
+hDifference' h h' = hDifference h (hToSet h')
 
 -- | Return an element from the hole that is not in the set.
-notIn :: Ord a => Hole a -> S.Set a -> Maybe a
-notIn h s = foldr go Nothing (toSet h)
+hNotIn :: Ord a => Hole a -> S.Set a -> Maybe a
+hNotIn h s = foldr go Nothing (hToSet h)
   where
     go x Nothing = if S.notMember x s
                    then Just x
@@ -72,40 +72,40 @@ notIn h s = foldr go Nothing (toSet h)
     go _ (Just y) = Just y
 
 -- | Return the minimal possible value in the cell.
-cellMin :: Ord a => Cell a -> a
-cellMin (Left x) = x
-cellMin (Right h) = minimum (toSet h)
+cMin :: Ord a => Cell a -> a
+cMin (Left x) = x
+cMin (Right h) = minimum (hToSet h)
 
 -- | Return the maximal possible value in the cell.
-cellMax :: Ord a => Cell a -> a
-cellMax (Left x) = x
-cellMax (Right h) = maximum (toSet h)
+cMax :: Ord a => Cell a -> a
+cMax (Left x) = x
+cMax (Right h) = maximum (hToSet h)
 
 -- | Filter all elements that satisfy the predicate.
 hFilter :: Ord a => (a -> Bool) -> Hole a -> Maybe (Cell a)
-hFilter f h = case S.toList (S.filter f (toSet h)) of
+hFilter f h = case S.toList (S.filter f (hToSet h)) of
   [] -> Nothing
   [x] -> Just (Left x)
   (x1:x2:xs) -> Just (Right (Hole x1 x2 (S.fromList xs)))
 
 -- | Remove all possible values lower than a given value.
-lowerBound :: Ord a => Hole a -> a -> Maybe (Cell a)
-lowerBound h x = hFilter (\ y -> y > x) h
+hLowerBound :: Ord a => Hole a -> a -> Maybe (Cell a)
+hLowerBound h x = hFilter (\ y -> y > x) h
 
 -- | Remove all possible values higher than a given value.
-upperBound :: Ord a => Hole a -> a -> Maybe (Cell a)
-upperBound h x = hFilter (\ y -> y < x) h
+hUpperBound :: Ord a => Hole a -> a -> Maybe (Cell a)
+hUpperBound h x = hFilter (\ y -> y < x) h
 
 -- | Turn a cell containing a digit into a character.
-toChar :: Cell Digit -> Char
-toChar (Left Zero) = '0'
-toChar (Left One) = '1'
-toChar (Left Two) = '2'
-toChar (Left Three) = '3'
-toChar (Left Four) = '4'
-toChar (Left Five) = '5'
-toChar (Left Six) = '6'
-toChar (Left Seven) = '7'
-toChar (Left Eight) = '8'
-toChar (Left Nine) = '9'
-toChar (Right _) = '_'
+cToChar :: Cell Digit -> Char
+cToChar (Left Zero) = '0'
+cToChar (Left One) = '1'
+cToChar (Left Two) = '2'
+cToChar (Left Three) = '3'
+cToChar (Left Four) = '4'
+cToChar (Left Five) = '5'
+cToChar (Left Six) = '6'
+cToChar (Left Seven) = '7'
+cToChar (Left Eight) = '8'
+cToChar (Left Nine) = '9'
+cToChar (Right _) = '_'

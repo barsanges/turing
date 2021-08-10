@@ -18,6 +18,7 @@ module Commons.Cell (
   toChar,
   cellMin,
   cellMax,
+  hFilter,
   lowerBound,
   upperBound
   ) where
@@ -81,19 +82,19 @@ cellMax (Left x) = x
 cellMax (Right h) = maximum (toSet h)
 
 -- | Filter all elements that satisfy the predicate.
-holeFilter :: Ord a => (a -> Bool) -> Hole a -> Maybe (Cell a)
-holeFilter f h = case S.toList (S.filter f (toSet h)) of
+hFilter :: Ord a => (a -> Bool) -> Hole a -> Maybe (Cell a)
+hFilter f h = case S.toList (S.filter f (toSet h)) of
   [] -> Nothing
   [x] -> Just (Left x)
   (x1:x2:xs) -> Just (Right (Hole x1 x2 (S.fromList xs)))
 
 -- | Remove all possible values lower than a given value.
 lowerBound :: Ord a => Hole a -> a -> Maybe (Cell a)
-lowerBound h x = holeFilter (\ y -> y > x) h
+lowerBound h x = hFilter (\ y -> y > x) h
 
 -- | Remove all possible values higher than a given value.
 upperBound :: Ord a => Hole a -> a -> Maybe (Cell a)
-upperBound h x = holeFilter (\ y -> y < x) h
+upperBound h x = hFilter (\ y -> y < x) h
 
 -- | Turn a cell containing a digit into a character.
 toChar :: Cell Digit -> Char

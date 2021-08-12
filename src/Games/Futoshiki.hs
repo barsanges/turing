@@ -161,7 +161,7 @@ allViews f = simple ++ comp
     simple = [(i, d) | i <- [0..35]
                      , d <- [Column, Row]]
     comp = let go (i, j) = [(i, Comp j), (j, Comp i)]
-           in concat (fmap go (M.keys (signs f)))
+           in concatMap go (M.keys (signs f))
 
 -- | Select a view of a grid.
 select :: Futoshiki -> (Int, Dir) -> Maybe View
@@ -195,11 +195,11 @@ allNeighbors i = S.unions [col, row]
 
 -- | Get all the neighbors (in the current direction) of the focus cell.
 see :: View -> [Cell Digit]
-see v = fmap ((!) (vgrid v)) (neighbors (focus v) (dir v))
+see v = fmap ((vgrid v) !) (neighbors (focus v) (dir v))
 
 -- | Get all the neighbors (in all directions) of the focus cell.
 seeAll :: View -> [Cell Digit]
-seeAll v = fmap ((!) (vgrid v)) (S.toList (allNeighbors (focus v)))
+seeAll v = fmap ((vgrid v) !) (S.toList (allNeighbors (focus v)))
 
 -- | Return the order of the relation between 'i' and 'j', from the point of
 -- view of 'i': 'Gt' means that the value in cell 'i' should be greater than

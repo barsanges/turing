@@ -131,11 +131,11 @@ select (Sk vec) (i, d) = case vec ! i of
 
 -- | Get all the neighbors (in the current direction) of the focus cell.
 see :: View -> [Cell Digit]
-see v = fmap ((!) (grid v)) (neighbors (focus v) (dir v))
+see v = fmap ((grid v) !) (neighbors (focus v) (dir v))
 
 -- | Get all the neighbors (in all directions) of the focus cell.
 seeAll :: View -> [Cell Digit]
-seeAll v = fmap ((!) (grid v)) (S.toList (allNeighbors (focus v)))
+seeAll v = fmap ((grid v) !) (S.toList (allNeighbors (focus v)))
 
 -- | A digit can appear only once in a view.
 unique :: View -> View

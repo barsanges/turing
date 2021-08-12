@@ -45,7 +45,7 @@ hSize (Hole _ _ s) = 2 + S.size s
 
 -- | Build a hole from a set.
 hFromSet :: a -> a -> S.Set a -> Hole a
-hFromSet x y s = Hole x y s
+hFromSet = Hole
 
 -- | Turn a cell into a set.
 cToSet :: Ord a => Cell a -> S.Set a

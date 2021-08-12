@@ -3,7 +3,7 @@
    Copyright   : Copyright (C) 2021 barsanges
    License     : GNU GPL, version 3
 
-Solve a Garam puzzle: each operation should be correct.
+Solve a Garam puzzle: fill a grid so that each operation is correct.
 -}
 
 module Games.Garam (

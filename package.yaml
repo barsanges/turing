@@ -15,9 +15,15 @@ dependencies:
 - base
 - containers
 - vector
+- optparse-applicative
 
 library:
   source-dirs: src
+
+executables:
+  turing:
+    source-dirs:      src
+    main:             Main.hs
 
 tests:
   turing-test:

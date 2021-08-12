@@ -10,7 +10,8 @@ module Games.Garam (
   Garam,
   fromString,
   toString,
-  solveGaram
+  solveGaram,
+  processGaram
   ) where
 
 import qualified Data.Set as S
@@ -318,3 +319,11 @@ solveGaram :: Integral n
            -> Garam           -- ^ Initial grid
            -> Either Garam Garam
 solveGaram limit g0 = solveWithIt limit g0 allViews select shrink unview
+
+-- | Parse, solve and unparse a Garam puzzle.
+processGaram :: Integral n => n -> String -> (String, Maybe String)
+processGaram limit input = case fromString input of
+  Nothing -> ("unable to parse the input!", Nothing)
+  Just g -> case solveGaram limit g of
+    Left g' -> ("unable to solve the puzzle", Just $ toString g')
+    Right g' -> ("", Just $ toString g')

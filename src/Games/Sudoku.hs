@@ -12,7 +12,8 @@ module Games.Sudoku (
   Sudoku,
   fromString,
   toString,
-  solveSudoku
+  solveSudoku,
+  processSudoku
   ) where
 
 import Data.Either ( lefts, rights )
@@ -209,3 +210,11 @@ solveSudoku :: Integral n
             -> Sudoku       -- ^ Initial grid
             -> Either Sudoku Sudoku
 solveSudoku limit g0 = solveWithIt limit g0 allViews select shrink unview
+
+-- | Parse, solve and unparse a Sudoku puzzle.
+processSudoku :: Integral n => n -> String -> (String, Maybe String)
+processSudoku limit input = case fromString input of
+  Nothing -> ("unable to parse the input!", Nothing)
+  Just s -> case solveSudoku limit s of
+    Left s' -> ("unable to solve the puzzle", Just $ toString s')
+    Right s' -> ("", Just $ toString s')

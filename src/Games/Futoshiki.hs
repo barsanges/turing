@@ -12,7 +12,8 @@ module Games.Futoshiki (
   Futoshiki,
   fromString,
   toString,
-  solveFutoshiki
+  solveFutoshiki,
+  processFutoshiki
   ) where
 
 import Data.Either ( lefts, rights )
@@ -312,3 +313,11 @@ solveFutoshiki :: Integral n
                -> Futoshiki       -- ^ Initial grid
                -> Either Futoshiki Futoshiki
 solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select shrink unview
+
+-- | Parse, solve and unparse a Futoshiki puzzle.
+processFutoshiki :: Integral n => n -> String -> (String, Maybe String)
+processFutoshiki limit input = case fromString input of
+  Nothing -> ("unable to parse the input!", Nothing)
+  Just f -> case solveFutoshiki limit f of
+    Left f' -> ("unable to solve the puzzle", Just $ toString f')
+    Right f' -> ("", Just $ toString f')

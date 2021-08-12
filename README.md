@@ -1,7 +1,7 @@
 # Turing
 
 `Turing` is a simple solver for mathematical puzzles. The program is
-able to solve simple instances of the following game:
+able to solve simple instances of the following games:
 
 * [Garam](https://www.garam.fr/garam/garam_en_ligne/tutoriel/): fill a
   grid so that each operation is correct.

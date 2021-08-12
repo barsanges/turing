@@ -18,12 +18,13 @@ module Games.Futoshiki (
 import Data.Either ( lefts, rights )
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Data.Vector ( Vector, (!), (//), fromList )
+import Data.Vector ( Vector, (!), (//), generate, indexed )
 import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
                       hDifference', hNotIn, cToChar, cMin, cMax, hLowerBound,
                       hUpperBound )
 import Commons.Digit ( Digit(..) )
 import Commons.Iterator ( solveWithIt )
+import Commons.Parsing ( parse, unparse )
 
 -- | A comparison sign: > (Gt) or < (Lt).
 data Sign = Gt | Lt
@@ -49,35 +50,35 @@ data Dir = Column
          | Comp Int
   deriving Show
 
+-- | An ASCII template for a Futoshiki grid.
+template :: String
+template = "\
+\-------------\n\
+\|_?_?_?_?_?_|\n\
+\|! ! ! ! ! !|\n\
+\|_?_?_?_?_?_|\n\
+\|! ! ! ! ! !|\n\
+\|_?_?_?_?_?_|\n\
+\|! ! ! ! ! !|\n\
+\|_?_?_?_?_?_|\n\
+\|! ! ! ! ! !|\n\
+\|_?_?_?_?_?_|\n\
+\|! ! ! ! ! !|\n\
+\|_?_?_?_?_?_|\n\
+\-------------\n\
+\"
+
 -- | Parse a string into a Futoshiki grid.
 fromString :: String -> Maybe Futoshiki
-fromString s = case consume s 0 0 ([], M.empty) of
-  Just (xs, sgns) -> if length xs == 36
-                     then Just (F { grid = fromList (reverse xs)
-                                  , signs = sgns
-                                  })
-                     else Nothing
-  Nothing -> Nothing
-
--- | Consume a string to produce a Futoshiki grid.
-consume :: [Char]
-        -> Int
-        -> Int
-        -> ([Cell Digit], M.Map (Int, Int) Sign)
-        -> Maybe ([Cell Digit], M.Map (Int, Int) Sign)
-consume [] _ _ res = Just res
-consume ('\n':cs) row _ tmp = consume cs (row + 1) 0 tmp
-consume (c:cs) row col (xs, sgn) = do
-  xs' <- parseCell
-  let sgn' = parseSign
-  consume cs row (col + 1) (xs', sgn')
+fromString s = do
+  vec <- parse template '_' cellFromChar s
+  slines <- parse template '?' lineSignFromChar s
+  scols <- parse template '!' colSignFromChar s
+  return F { grid = vec
+           , signs = M.union (lineVecToMap slines) (colVecToMap scols)
+           }
 
   where
-
-    parseCell :: Maybe [Cell Digit]
-    parseCell = if even row && even col
-                then fmap (\ x -> x:xs) (cellFromChar c)
-                else Just xs
 
     cellFromChar :: Char -> Maybe (Cell Digit)
     cellFromChar '1' = Just (Left One)
@@ -92,63 +93,65 @@ consume (c:cs) row col (xs, sgn) = do
                                                                   Six])))
     cellFromChar _ = Nothing
 
-    parseSign :: (M.Map (Int, Int) Sign)
-    parseSign
-      | even row && odd col =
-        let i = 6 * (row `div` 2) + (col `div` 2)
-            j = i + 1
-        in maybeInsert (i, j) (signFromChar c)
-      | odd row && even col =
-        let i = 6 * (row `div` 2) + (col `div` 2)
-            j = i + 6
-        in maybeInsert (i, j) (signFromChar c)
-      | otherwise = sgn
+    lineSignFromChar :: Char -> Maybe (Maybe Sign)
+    lineSignFromChar '>' = Just (Just Gt)
+    lineSignFromChar '<' = Just (Just Lt)
+    lineSignFromChar ' ' = Just (Nothing)
+    lineSignFromChar _ = Nothing
 
-    signFromChar :: Char -> Maybe Sign
-    signFromChar 'ˇ' = Just Gt
-    signFromChar 'ˆ' = Just Lt
-    signFromChar '>' = Just Gt
-    signFromChar '<' = Just Lt
-    signFromChar _ = Nothing
+    colSignFromChar :: Char -> Maybe (Maybe Sign)
+    colSignFromChar 'ˇ' = Just (Just Gt)
+    colSignFromChar 'ˆ' = Just (Just Lt)
+    colSignFromChar ' ' = Just (Nothing)
+    colSignFromChar _ = Nothing
 
-    maybeInsert :: (Int, Int) -> Maybe Sign -> M.Map (Int, Int) Sign
-    maybeInsert _ Nothing = sgn
-    maybeInsert k (Just s) = M.insert k s sgn
+    lineVecToMap :: Vector (Maybe Sign) -> M.Map (Int, Int) Sign
+    lineVecToMap v = foldr go M.empty (indexed v)
+      where
+        go :: (Int, Maybe Sign) -> M.Map (Int, Int) Sign -> M.Map (Int, Int) Sign
+        go (_, Nothing) m = m
+        go (p, Just sg) m = M.insert (p + k, p + k + 1) sg m
+          where
+            k = p `div` 5
+
+    colVecToMap :: Vector (Maybe Sign) -> M.Map (Int, Int) Sign
+    colVecToMap v = foldr go M.empty (indexed v)
+      where
+        go :: (Int, Maybe Sign) -> M.Map (Int, Int) Sign -> M.Map (Int, Int) Sign
+        go (_, Nothing) m = m
+        go (p, Just sg) m = M.insert (p, p + 6) sg m
 
 -- | Turn a Futoshiki grid into a string.
 toString :: Futoshiki -> String
-toString f =
-  unlines
-  [
-    [d  0, h  0  1, d  1, h  1  2, d  2, h  2  3, d  3, h  3  4, d  4, h  4  5, d  5]
-  , [v  0 6,   ' ', v  1 7,   ' ', v  2 8,   ' ', v  3 9,   ' ', v  4 10,   ' ', v 5 11]
-  , [d  6, h  6  7, d  7, h  7  8, d  8, h  8  9, d  9, h  9 10, d 10, h 10 11, d 11]
-  , [v  6 12,  ' ', v  7 13,  ' ', v  8 14,  ' ', v  9 15,  ' ', v 10 16,  ' ', v 11 17]
-  , [d 12, h 12 13, d 13, h 13 14, d 14, h 14 15, d 15, h 15 16, d 16, h 16 17, d 17]
-  , [v 12 18,  ' ', v 13 19,  ' ', v 14 20,  ' ', v 15 21,  ' ', v 16 22,  ' ', v 17 23]
-  , [d 18, h 18 19, d 19, h 19 20, d 20, h 20 21, d 21, h 21 22, d 22, h 22 23, d 23]
-  , [v 18 24,  ' ', v 19 25,  ' ', v 20 26,  ' ', v 21 27,  ' ', v 22 28,  ' ', v 23 29]
-  , [d 24, h 24 25, d 25, h 25 26, d 26, h 26 27, d 27, h 27 28, d 28, h 28 29, d 29]
-  , [v 24 30,  ' ', v 25 31,  ' ', v 26 32,  ' ', v 27 33,  ' ', v 28 34,  ' ', v 29 35]
-  , [d 30, h 30 31, d 31, h 31 32, d 32, h 32 33, d 33, h 33 34, d 34, h 34 35, d 35]
-  ]
-
+toString f = s2
   where
+    s0 = unparse template '_' cToChar (grid f)
+    s1 = unparse s0 '?' lineSignToChar (lineMapToVec $ signs f)
+    s2 = unparse s1 '!' colSignToChar (colMapToVec $ signs f)
 
-    d :: Int -> Char
-    d i = cToChar ((grid f) ! i)
+    lineSignToChar :: Maybe Sign -> Char
+    lineSignToChar (Just Gt) = '>'
+    lineSignToChar (Just Lt) = '<'
+    lineSignToChar Nothing = ' '
 
-    h :: Int -> Int -> Char
-    h i j = case M.lookup (i, j) (signs f) of
-      Nothing -> ' '
-      Just Gt -> '>'
-      Just Lt -> '<'
+    colSignToChar :: Maybe Sign -> Char
+    colSignToChar (Just Gt) = 'ˇ'
+    colSignToChar (Just Lt) = 'ˆ'
+    colSignToChar Nothing = ' '
 
-    v :: Int -> Int -> Char
-    v i j = case M.lookup (i, j) (signs f) of
-      Nothing -> ' '
-      Just Gt -> 'ˇ'
-      Just Lt -> 'ˆ'
+    lineMapToVec :: M.Map (Int, Int) Sign -> Vector (Maybe Sign)
+    lineMapToVec m = generate 30 go
+      where
+        go :: Int -> Maybe Sign
+        go p = M.lookup (p + k, p + k + 1) m
+          where
+            k = p `div` 5
+
+    colMapToVec :: M.Map (Int, Int) Sign -> Vector (Maybe Sign)
+    colMapToVec m = generate 30 go
+      where
+        go :: Int -> Maybe Sign
+        go p = M.lookup (p, p + 6) m
 
 -- | Indexers for all possible views of a grid.
 allViews :: Futoshiki -> [(Int, Dir)]

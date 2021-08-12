@@ -216,5 +216,5 @@ processSudoku :: Integral n => n -> String -> (String, Maybe String)
 processSudoku limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just s -> case solveSudoku limit s of
-    Left s' -> ("unable to solve the puzzle", Just $ toString s')
+    Left s' -> ("unable to solve the puzzle!", Just $ toString s')
     Right s' -> ("", Just $ toString s')

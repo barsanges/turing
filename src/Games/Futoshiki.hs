@@ -319,5 +319,5 @@ processFutoshiki :: Integral n => n -> String -> (String, Maybe String)
 processFutoshiki limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just f -> case solveFutoshiki limit f of
-    Left f' -> ("unable to solve the puzzle", Just $ toString f')
+    Left f' -> ("unable to solve the puzzle!", Just $ toString f')
     Right f' -> ("", Just $ toString f')

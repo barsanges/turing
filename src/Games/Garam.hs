@@ -325,5 +325,5 @@ processGaram :: Integral n => n -> String -> (String, Maybe String)
 processGaram limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just g -> case solveGaram limit g of
-    Left g' -> ("unable to solve the puzzle", Just $ toString g')
+    Left g' -> ("unable to solve the puzzle!", Just $ toString g')
     Right g' -> ("", Just $ toString g')

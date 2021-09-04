@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {- |
    Module      : Games.Garam
    Copyright   : Copyright (C) 2021 barsanges
@@ -11,14 +13,18 @@ module Games.Garam (
   fromString,
   toString,
   solveGaram,
+  solveGaramWithLog,
   processGaram
   ) where
 
 import qualified Data.Set as S
+import qualified Data.Text as T
 import Data.Vector ( Vector, (!), (//) )
+import Text.Printf ( printf )
 import Commons.Digit ( Digit(..), toInt )
 import Commons.Cell ( Cell, cToSet, cToChar, cFilter, hFromSet )
-import Commons.Iterator ( solveWithIt )
+import Commons.Iterator ( solveWithIt, solveWithLogAndIt )
+import Commons.Log ( Message(..), Log, describeChange, record )
 import Commons.Parsing ( parse, unparse )
 
 -- | Shorthand for 'Cell Digit'.
@@ -135,6 +141,16 @@ toString f = res
     opToChar Plus = '+'
     opToChar Minus = '-'
     opToChar Mul = 'x'
+
+-- | Turn the "index" of a view into a string.
+toLocationId :: Equation Idx1 Idx2 -> T.Text
+toLocationId (FstLHS1 (Idx1 i _ _ _)) = T.pack $ printf "%02d/LHS1/1" i
+toLocationId (SndLHS1 (Idx1 _ i _ _)) = T.pack $ printf "%02d/LHS1/2" i
+toLocationId (RHS1 (Idx1 _ _ _ i)) = T.pack $ printf "%02d/RHS1/1" i
+toLocationId (FstLHS2 (Idx2 i _ _ _ _)) = T.pack $ printf "%02d/LHS2/1" i
+toLocationId (SndLHS2 (Idx2 _ i _ _ _)) = T.pack $ printf "%02d/LHS2/2" i
+toLocationId (FstRHS2 (Idx2 _ _ _ i _)) = T.pack $ printf "%02d/RHS2/1" i
+toLocationId (SndRHS2 (Idx2 _ _ _ _ i)) = T.pack $ printf "%02d/RHS2/2" i
 
 -- | Indexers for all possible views of a grid.
 allViews :: [Equation Idx1 Idx2]
@@ -307,6 +323,19 @@ shrink v = v { vgrid = (vgrid v) // [(i, new)] }
     eq = fromIdx (unview v) (focus v)
     new = simplify eq
 
+-- | Increase the available information on the unknown, and record the process.
+shrinkWithLog :: View -> Log View
+shrinkWithLog v = record m v'
+  where
+    i = unknownIdx (focus v)
+    eq = fromIdx (unview v) (focus v)
+    new = simplify eq
+    v' = v { vgrid = (vgrid v) // [(i, new)] }
+    m = Mes { locationId = toLocationId (focus v)
+            , ruleId = "simplify"
+            , change = describeChange (unknown eq) new
+            }
+
 -- | Get the grid behind the given view.
 unview :: View -> Garam
 unview v = G { grid = vgrid v
@@ -319,6 +348,13 @@ solveGaram :: Integral n
            -> Garam           -- ^ Initial grid
            -> Either Garam Garam
 solveGaram limit g0 = solveWithIt limit g0 allViews select shrink unview
+
+-- | Solve a Garam grid, and record how the cells are progessively simplified.
+solveGaramWithLog :: Integral n
+                  => n               -- ^ Number of iterations before giving up
+                  -> Garam           -- ^ Initial grid
+                  -> Either (Log Garam) (Log Garam)
+solveGaramWithLog limit g0 = solveWithLogAndIt limit g0 allViews select shrinkWithLog unview
 
 -- | Parse, solve and unparse a Garam puzzle.
 processGaram :: Integral n => n -> String -> (String, Maybe String)

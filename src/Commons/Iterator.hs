@@ -74,5 +74,5 @@ solveWithLogAndIt limit g0 as next shrink unview =
   where
 
     next' = nextIt next
-    shrink' (It as g) = fmap (It as) (shrink g)
+    shrink' (It as' g) = fmap (It as') (shrink g)
     unview' = fmap unview

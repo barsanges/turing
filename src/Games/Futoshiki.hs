@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {- |
    Module      : Games.Futoshiki
    Copyright   : Copyright (C) 2021 barsanges
@@ -13,18 +15,23 @@ module Games.Futoshiki (
   fromString,
   toString,
   solveFutoshiki,
+  solveFutoshikiWithLog,
   processFutoshiki
   ) where
 
 import Data.Either ( lefts, rights )
 import qualified Data.Map as M
 import qualified Data.Set as S
+import qualified Data.Text as T
 import Data.Vector ( Vector, (!), (//), generate, indexed )
+import Text.Printf ( printf )
 import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
                       hDifference', hNotIn, cToChar, cMin, cMax, hLowerBound,
                       hUpperBound )
 import Commons.Digit ( Digit(..) )
-import Commons.Iterator ( solveWithIt )
+import Commons.Iterator ( solveWithIt, solveWithLogAndIt )
+import Commons.Log ( Message(..), Log, dropLog, describeChange, record,
+                     records )
 import Commons.Parsing ( parse, unparse )
 
 -- | A comparison sign: > (Gt) or < (Lt).
@@ -154,6 +161,19 @@ toString f = s2
         go :: Int -> Maybe Sign
         go p = M.lookup (p, p + 6) m
 
+-- | Get the location ID of a view.
+toLocationId :: View -> T.Text
+toLocationId v = toLocationId' (focus v) (dir v)
+
+-- | Get the location ID of a view.
+toLocationId' :: Int -> Dir -> T.Text
+toLocationId' i d = T.pack $ printf base i
+  where
+    base = case d of
+      Column -> "%02d/    column"
+      Row ->    "%02d/       row"
+      Comp _ -> "%02d/comparison"
+
 -- | Indexers for all possible views of a grid.
 allViews :: Futoshiki -> [(Int, Dir)]
 allViews f = simple ++ comp
@@ -212,15 +232,18 @@ relation v i j = if i < j
                         Lt -> Gt
 
 -- | Some cells are bound by an order relationship.
-comparison :: View -> View
+comparison :: View -> Log View
 comparison v = case vec ! i of
-  Left _ -> v
+  Left _ -> pure v
   Right hole -> case dir v of
-    Column -> v
-    Row -> v
+    Column -> pure v
+    Row -> pure v
     Comp j -> case mnew of
-      Just new -> v { vgrid = vec // [(i, new)] }
-      Nothing -> v
+      Just new -> let m = Mes { locationId = toLocationId v
+                              , ruleId = "comparison"
+                              , change = describeChange (vec ! i) new }
+                  in record m (v { vgrid = vec // [(i, new)] })
+      Nothing -> pure v
       where
         y = vec ! j
         mnew = case relation v i j of
@@ -233,30 +256,36 @@ comparison v = case vec ! i of
     vec = vgrid v
 
 -- | A digit can appear only once in a view.
-unique :: View -> View
+unique :: View -> Log View
 unique v = case vec ! i of
-  Left _ -> v
+  Left _ -> pure v
   Right hole -> case dir v of
-    Comp _ -> v
+    Comp _ -> pure v
     _ -> case hDifference hole known of
-      Nothing -> v
-      Just new -> v { vgrid = vec // [(i, new)] }
+      Nothing -> pure v
+      Just new -> let m = Mes { locationId = toLocationId v
+                              , ruleId = "    unique"
+                              , change = describeChange (vec ! i) new }
+                  in record m (v { vgrid = vec // [(i, new)] })
   where
     i = focus v
     vec = vgrid v
     known = S.fromList (lefts (see v))
 
 -- | Only one cell may be available for a digit.
-only :: View -> View
+only :: View -> Log View
 only v = case vec ! i of
-  Left _ -> v
+  Left _ -> pure v
   Right hole -> case dir v of
-    Comp _ -> v
+    Comp _ -> pure v
     _ -> case hNotIn hole others of
-      Nothing -> v
+      Nothing -> pure v
       Just x -> if S.notMember x known
-                then v { vgrid = vec // [(i, Left x)] }
-                else v
+                then let m = Mes { locationId = toLocationId v
+                                 , ruleId = "      only"
+                                 , change = describeChange (vec ! i) (Left x) }
+                     in record m (v { vgrid = vec // [(i, Left x)] })
+                else pure v
   where
     i = focus v
     vec = vgrid v
@@ -266,14 +295,20 @@ only v = case vec ! i of
 
 -- | Some cells may constitute a subset independant of the other cells of the
 -- view.
-subset :: View -> View
+subset :: View -> Log View
 subset v = case vec ! i of
-  Left _ -> v
+  Left _ -> pure v
   Right hole -> case dir v of
-    Comp _ -> v
+    Comp _ -> pure v
     _ -> if 1 + length (identical hole) == hSize hole
-         then v { vgrid = vec // (newNeighbors hole) }
-         else v
+         then records ms (v { vgrid = vec // news })
+         else pure v
+      where
+        news = newNeighbors hole
+        ms = [Mes { locationId = toLocationId' j (dir v)
+                  , ruleId = "    subset"
+                  , change = describeChange (vec ! j) new }
+             | (j, new) <- news ]
 
   where
 
@@ -299,7 +334,12 @@ subset v = case vec ! i of
 
 -- | Rules to apply to increase the available information on a view.
 shrink :: View -> View
-shrink = comparison . unique . only . subset
+shrink = dropLog . shrinkWithLog
+
+-- | Rules to apply to increase the available information on a view. Record
+-- the process.
+shrinkWithLog :: View -> Log View
+shrinkWithLog v = (comparison v) >>= unique >>= only >>= subset
 
 -- | Get the grid behind the given view.
 unview :: View -> Futoshiki
@@ -313,6 +353,14 @@ solveFutoshiki :: Integral n
                -> Futoshiki       -- ^ Initial grid
                -> Either Futoshiki Futoshiki
 solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select shrink unview
+
+-- | Solve a Futoshiki grid, and record how the cells are progressively
+-- simplified.
+solveFutoshikiWithLog :: Integral n
+                      => n               -- ^ Number of iterations before giving up
+                      -> Futoshiki       -- ^ Initial grid
+                      -> Either (Log Futoshiki) (Log Futoshiki)
+solveFutoshikiWithLog limit g0 = solveWithLogAndIt limit g0 (allViews g0) select shrinkWithLog unview
 
 -- | Parse, solve and unparse a Futoshiki puzzle.
 processFutoshiki :: Integral n => n -> String -> (String, Maybe String)

@@ -15,11 +15,13 @@ module Commons.Log
   , (>>*)
   , describeChange
   , record
+  , records
   , getLog
+  , dropLog
   ) where
 
 import Data.Foldable ( toList )
-import Data.Sequence ( Seq(..), (><), singleton )
+import Data.Sequence ( Seq(..), (><), singleton, fromList )
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Commons.Cell ( Cell, cToSet )
@@ -77,6 +79,10 @@ describeChange old new =
 record :: Message -> a -> Log a
 record m x = Log (singleton m) x
 
+-- | Log a list of messages with a value.
+records :: [Message] -> a -> Log a
+records ms x = Log (fromList ms) x
+
 -- | Turn one message into a string.
 toString :: Message -> T.Text
 toString m = T.concat ["[", locationId m, "] [", ruleId m, "] ", change m]
@@ -84,3 +90,7 @@ toString m = T.concat ["[", locationId m, "] [", ruleId m, "] ", change m]
 -- | Get the log (i.e.: a sequence of messages) as a string.
 getLog :: Log a -> T.Text
 getLog (Log ms _) = T.unlines (toList $ fmap toString ms)
+
+-- | Drop the log.
+dropLog :: Log a -> a
+dropLog (Log _ x) = x

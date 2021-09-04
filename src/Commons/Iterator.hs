@@ -7,12 +7,14 @@ Solve a mathematical puzzle by iterating over all the different views of
 the grid.
 -}
 
-module Commons.Iterator (
-  solveWithIt
+module Commons.Iterator
+  ( solveWithIt
+  , solveWithLogAndIt
   ) where
 
 import Data.Sequence ( Seq(..), (|>), fromList )
-import Commons.Solve ( solve )
+import Commons.Log ( Log, swap )
+import Commons.Solve ( solve, solveWithLog )
 
 -- | Cyclic iterator over an object 'u' indexed by 'a's.
 data It a u = It (Seq a) u
@@ -49,4 +51,28 @@ solveWithIt limit g0 as next shrink unview =
 
     next' = nextIt next
     shrink' = fmap shrink
+    unview' = fmap unview
+
+-- | Solve a mathematical puzzle by iterating over all the different views of
+-- the grid, and record which rules are applied to the grid.
+solveWithLogAndIt :: Integral n
+                  => n                              -- ^ Number of iterations before giving up
+                  -> grid                           -- ^ Initial puzzle
+                  -> [a]                            -- ^ Every view's key
+                  -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
+                  -> (view -> Log view)             -- ^ Set of rules to use to shrink the grid
+                  -> (view -> grid)                 -- ^ Get the full puzzle
+                  -> Either (Log grid) (Log grid)
+solveWithLogAndIt limit g0 as next shrink unview =
+
+  case solveWithLog limit (It (fromList as) g0) next' shrink' unview' of
+    Left lit -> let (It _ g) = swap lit
+                in Left g
+    Right lit -> let (It _ g) = swap lit
+                 in Right g
+
+  where
+
+    next' = nextIt next
+    shrink' (It as g) = fmap (It as) (shrink g)
     unview' = fmap unview

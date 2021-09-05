@@ -162,17 +162,34 @@ toString f = s2
         go p = M.lookup (p, p + 6) m
 
 -- | Get the location ID of a view.
-toLocationId :: View -> T.Text
-toLocationId v = toLocationId' (focus v) (dir v)
-
--- | Get the location ID of a view.
-toLocationId' :: Int -> Dir -> T.Text
-toLocationId' i d = T.pack $ printf base i
+toLocationId :: Int -> Dir -> T.Text
+toLocationId i d = T.pack $ printf base i
   where
     base = case d of
       Column -> "%02d/    column"
       Row ->    "%02d/       row"
       Comp _ -> "%02d/comparison"
+
+-- | Build a message regarding the update of a given view.
+mkMessage :: View
+          -> T.Text
+          -> Cell Digit
+          -> Cell Digit
+          -> Message
+mkMessage v rule old new = mkMessage' (focus v) (dir v) rule old new
+
+-- | Build a message regarding the update of a given cell.
+mkMessage' :: Int
+           -> Dir
+           -> T.Text
+           -> Cell Digit
+           -> Cell Digit
+           -> Message
+mkMessage' i d rule old new = Mes
+  { locationId = toLocationId i d
+  , ruleId = T.pack $ printf "%10s" rule
+  , change = describeChange old new
+  }
 
 -- | Indexers for all possible views of a grid.
 allViews :: Futoshiki -> [(Int, Dir)]
@@ -233,17 +250,16 @@ relation v i j = if i < j
 
 -- | Some cells are bound by an order relationship.
 comparison :: View -> Log View
-comparison v = case vec ! i of
+comparison v = case x of
   Left _ -> pure v
   Right hole -> case dir v of
     Column -> pure v
     Row -> pure v
     Comp j -> case mnew of
-      Just new -> let m = Mes { locationId = toLocationId v
-                              , ruleId = "comparison"
-                              , change = describeChange (vec ! i) new }
+      Just new -> let m = mkMessage v "comparison" x new
                   in record m (v { vgrid = vec // [(i, new)] })
-      Nothing -> pure v
+      Nothing -> let m = mkMessage v "comparison" x x
+                 in record m v
       where
         y = vec ! j
         mnew = case relation v i j of
@@ -254,6 +270,7 @@ comparison v = case vec ! i of
 
     i = focus v
     vec = vgrid v
+    x = vec ! i
 
 -- | A digit can appear only once in a view.
 unique :: View -> Log View
@@ -262,14 +279,14 @@ unique v = case vec ! i of
   Right hole -> case dir v of
     Comp _ -> pure v
     _ -> case hDifference hole known of
-      Nothing -> pure v
-      Just new -> let m = Mes { locationId = toLocationId v
-                              , ruleId = "    unique"
-                              , change = describeChange (vec ! i) new }
+      Nothing -> let m = mkMessage v "unique" x x
+                 in record m v
+      Just new -> let m = mkMessage v "unique" x new
                   in record m (v { vgrid = vec // [(i, new)] })
   where
     i = focus v
     vec = vgrid v
+    x = vec ! i
     known = S.fromList (lefts (see v))
 
 -- | Only one cell may be available for a digit.
@@ -279,13 +296,13 @@ only v = case vec ! i of
   Right hole -> case dir v of
     Comp _ -> pure v
     _ -> case hNotIn hole others of
-      Nothing -> pure v
+      Nothing -> let m = mkMessage v "only" (vec ! i) (vec ! i)
+                 in record m v
       Just x -> if S.notMember x known
-                then let m = Mes { locationId = toLocationId v
-                                 , ruleId = "      only"
-                                 , change = describeChange (vec ! i) (Left x) }
+                then let m = mkMessage v "only" (vec ! i) (Left x)
                      in record m (v { vgrid = vec // [(i, Left x)] })
-                else pure v
+                else let m = mkMessage v "only" (vec ! i) (vec ! i)
+                     in record m v
   where
     i = focus v
     vec = vgrid v
@@ -302,12 +319,11 @@ subset v = case vec ! i of
     Comp _ -> pure v
     _ -> if 1 + length (identical hole) == hSize hole
          then records ms (v { vgrid = vec // news })
-         else pure v
+         else let m = mkMessage v "subset" (vec ! i) (vec ! i)
+              in record m v
       where
         news = newNeighbors hole
-        ms = [Mes { locationId = toLocationId' j (dir v)
-                  , ruleId = "    subset"
-                  , change = describeChange (vec ! j) new }
+        ms = [mkMessage' j (dir v) "subset" (vec ! j) new
              | (j, new) <- news ]
 
   where

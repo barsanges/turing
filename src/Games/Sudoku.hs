@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {- |
    Module      : Games.Sudoku
    Copyright   : Copyright (C) 2021 barsanges
@@ -13,16 +15,21 @@ module Games.Sudoku (
   fromString,
   toString,
   solveSudoku,
+  solveSudokuWithLog,
   processSudoku
   ) where
 
 import Data.Either ( lefts, rights )
 import qualified Data.Set as S
+import qualified Data.Text as T
 import Data.Vector ( Vector, (!), (//) )
+import Text.Printf ( printf )
 import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
                       hDifference', hNotIn, cToChar )
 import Commons.Digit ( Digit(..) )
-import Commons.Iterator ( solveWithIt )
+import Commons.Iterator ( solveWithIt, solveWithLogAndIt )
+import Commons.Log ( Message(..), Log, dropLog, describeChange, record,
+                     records )
 import Commons.Parsing ( parse, unparse )
 
 -- | A Sudoku grid.
@@ -89,6 +96,36 @@ fromString s = fmap Sk (parse template '_' fromChar s)
 toString :: Sudoku -> String
 toString (Sk vec) = unparse template '_' cToChar vec
 
+-- | Get the location ID of a view.
+toLocationId :: Int -> Dir -> T.Text
+toLocationId i d = T.pack $ printf base i
+  where
+    base = case d of
+      Column -> "%02d/column"
+      Row ->    "%02d/   row"
+      Block ->  "%02d/ block"
+
+-- | Build a message regarding the update of a given view.
+mkMessage :: View
+          -> T.Text
+          -> Cell Digit
+          -> Cell Digit
+          -> Message
+mkMessage v rule old new = mkMessage' (focus v) (dir v) rule old new
+
+-- | Build a message regarding the update of a given cell.
+mkMessage' :: Int
+           -> Dir
+           -> T.Text
+           -> Cell Digit
+           -> Cell Digit
+           -> Message
+mkMessage' i d rule old new = Mes
+  { locationId = toLocationId i d
+  , ruleId = T.pack $ printf "%6s" rule
+  , change = describeChange old new
+  }
+
 -- | Indexers for all possible views of a grid.
 allViews :: [(Int, Dir)]
 allViews = [(i, d) | i <- [0..80]
@@ -138,47 +175,60 @@ seeAll :: View -> [Cell Digit]
 seeAll v = fmap ((grid v) !) (S.toList (allNeighbors (focus v)))
 
 -- | A digit can appear only once in a view.
-unique :: View -> View
-unique v = case vec ! i of
-  Left _ -> v
+unique :: View -> Log View
+unique v = case x of
+  Left _ -> pure v
   Right hole -> case hDifference hole known of
-    Nothing -> v
-    Just new -> v { grid = vec // [(i, new)] }
+    Nothing -> let m = mkMessage v "unique" x x
+               in record m v
+    Just new -> let m = mkMessage v "unique" x new
+                in record m v { grid = vec // [(i, new)] }
   where
     i = focus v
     vec = grid v
+    x =vec ! i
     known = S.fromList (lefts (see v))
 
 -- | Only one cell may be available for a digit.
-only :: View -> View
-only v = case vec ! i of
-  Left _ -> v
+only :: View -> Log View
+only v = case x of
+  Left _ -> pure v
   Right hole -> case hNotIn hole others of
-    Nothing -> v
-    Just x -> if S.notMember x known
-              then v { grid = vec // [(i, Left x)] }
-              else v
+    Nothing -> let m = mkMessage v "only" x x
+               in record m v
+    Just y -> if S.notMember y known
+              then let m = mkMessage v "only" x (Left y)
+                   in record m v { grid = vec // [(i, Left y)] }
+              else let m = mkMessage v "only" x x
+                   in record m v
   where
     i = focus v
     vec = grid v
+    x = vec ! i
     known = S.fromList (lefts (seeAll v))
     unknown = rights (see v)
     others = S.unions (fmap hToSet unknown)
 
 -- | Some cells may constitute a subset independant of the other cells of the
 -- view.
-subset :: View -> View
-subset v = case vec ! i of
-  Left _ -> v
+subset :: View -> Log View
+subset v = case x of
+  Left _ -> pure v
   Right hole -> if 1 + length (identical hole) == hSize hole
-    then v { grid = vec // (newNeighbors hole) }
-    else v
+    then records ms (v { grid = vec // news })
+    else let m = mkMessage v "subset" x x
+         in record m v
+    where
+      news = newNeighbors hole
+      ms = [mkMessage' j (dir v) "subset" (vec ! j) new
+           | (j, new) <- news]
 
   where
 
     i = focus v
     ngb = neighbors (focus v) (dir v)
     vec = grid v
+    x = vec ! i
     unknown = rights (see v)
 
     identical :: Hole Digit -> [Hole Digit]
@@ -189,7 +239,7 @@ subset v = case vec ! i of
       where
         go :: Int -> (Int, Cell Digit)
         go j = case vec ! j of
-          Left x -> (j, Left x)
+          Left y -> (j, Left y)
           Right h' -> if h' /= h
             then case hDifference' h' h of
                    Nothing -> (j, Right h')
@@ -198,7 +248,12 @@ subset v = case vec ! i of
 
 -- | Rules to apply to increase the available information on a view.
 shrink :: View -> View
-shrink = unique . only . subset
+shrink = dropLog . shrinkWithLog
+
+-- | Rules to apply to increase the available information on a view. Record
+-- the process.
+shrinkWithLog :: View -> Log View
+shrinkWithLog v = (unique v) >>= only >>= subset
 
 -- | Get the grid behind the given view.
 unview :: View -> Sudoku
@@ -210,6 +265,13 @@ solveSudoku :: Integral n
             -> Sudoku       -- ^ Initial grid
             -> Either Sudoku Sudoku
 solveSudoku limit g0 = solveWithIt limit g0 allViews select shrink unview
+
+-- | Solve a Sudoku grid, and record how the cells are progressively simplified.
+solveSudokuWithLog :: Integral n
+                   => n            -- ^ Number of iterations before giving up
+                   -> Sudoku       -- ^ Initial grid
+                   -> Either (Log Sudoku) (Log Sudoku)
+solveSudokuWithLog limit g0 = solveWithLogAndIt limit g0 allViews select shrinkWithLog unview
 
 -- | Parse, solve and unparse a Sudoku puzzle.
 processSudoku :: Integral n => n -> String -> (String, Maybe String)

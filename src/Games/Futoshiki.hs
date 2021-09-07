@@ -324,7 +324,7 @@ subset v = case vec ! i of
       where
         news = newNeighbors hole
         ms = [mkMessage' j (dir v) "subset" (vec ! j) new
-             | (j, new) <- news ]
+             | (j, new) <- news]
 
   where
 

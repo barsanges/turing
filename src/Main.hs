@@ -9,6 +9,8 @@ Parses command line options and calls the appropriate solver.
 module Main where
 
 import Options.Applicative
+import Data.Text as T
+import Commons.Log ( dropLog, getLog )
 import Games.Garam ( processGaram )
 import Games.Futoshiki ( processFutoshiki )
 import Games.Sudoku ( processSudoku )
@@ -28,6 +30,7 @@ data Args = Args
   , input :: Input
   , output :: Output
   , n :: Int
+  , showLog :: Bool
   }
 
 argsParser :: Parser Args
@@ -63,6 +66,11 @@ argsParser = Args
          <> metavar "N"
          <> help "number of iterations allowed to solve the puzzle"
        ))
+  <*> (switch
+       (long "log"
+       <> short 'l'
+       <> help "print the log on stdout"
+       ))
 
 -- | Command line parser for 'turing'.
 args :: ParserInfo Args
@@ -87,6 +95,14 @@ main = do
     else pure ()
   case mres of
     Nothing -> pure ()
-    Just res -> case output cli of
-      OutputFile f -> writeFile f res
-      StdOut -> putStrLn res
+    Just res -> outLog *> outResult
+
+      where
+
+        outLog = case showLog cli of
+          True -> putStrLn (T.unpack $ getLog res)
+          False -> pure ()
+
+        outResult = case output cli of
+          OutputFile f -> writeFile f (dropLog res)
+          StdOut -> putStrLn (dropLog res)

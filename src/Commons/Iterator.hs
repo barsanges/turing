@@ -9,12 +9,11 @@ the grid.
 
 module Commons.Iterator
   ( solveWithIt
-  , solveWithLogAndIt
   ) where
 
 import Data.Sequence ( Seq(..), (|>), fromList )
 import Commons.Log ( Log, swap )
-import Commons.Solve ( solve, solveWithLog )
+import Commons.Solve ( solve )
 
 -- | Cyclic iterator over an object 'u' indexed by 'a's.
 data It a u = It (Seq a) u
@@ -32,40 +31,18 @@ nextIt f (It (a :<| as) g) = case f g a of
   Nothing -> nextIt f (It as g)
 
 -- | Solve a mathematical puzzle by iterating over all the different views of
--- the grid.
+-- the grid, and record which rules are applied to the grid.
 solveWithIt :: Integral n
             => n                              -- ^ Number of iterations before giving up
             -> grid                           -- ^ Initial puzzle
             -> [a]                            -- ^ Every view's key
             -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
-            -> (view -> view)                 -- ^ Set of rules to use to shrink the grid
+            -> (view -> Log view)             -- ^ Set of rules to use to shrink the grid
             -> (view -> grid)                 -- ^ Get the full puzzle
-            -> Either grid grid
+            -> Either (Log grid) (Log grid)
 solveWithIt limit g0 as next shrink unview =
 
   case solve limit (It (fromList as) g0) next' shrink' unview' of
-    Left (It _ g) -> Left g
-    Right (It _ g) -> Right g
-
-  where
-
-    next' = nextIt next
-    shrink' = fmap shrink
-    unview' = fmap unview
-
--- | Solve a mathematical puzzle by iterating over all the different views of
--- the grid, and record which rules are applied to the grid.
-solveWithLogAndIt :: Integral n
-                  => n                              -- ^ Number of iterations before giving up
-                  -> grid                           -- ^ Initial puzzle
-                  -> [a]                            -- ^ Every view's key
-                  -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
-                  -> (view -> Log view)             -- ^ Set of rules to use to shrink the grid
-                  -> (view -> grid)                 -- ^ Get the full puzzle
-                  -> Either (Log grid) (Log grid)
-solveWithLogAndIt limit g0 as next shrink unview =
-
-  case solveWithLog limit (It (fromList as) g0) next' shrink' unview' of
     Left lit -> let (It _ g) = swap lit
                 in Left g
     Right lit -> let (It _ g) = swap lit

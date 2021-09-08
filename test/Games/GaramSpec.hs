@@ -10,11 +10,12 @@ module Games.GaramSpec ( spec ) where
 
 import Test.Hspec
 import Data.Maybe ( fromJust )
+import Commons.Log ( Log, dropLog )
 import Games.Garam
 
-eitherToString :: Either Garam Garam -> String
-eitherToString (Left x) = toString x
-eitherToString (Right y) = toString y
+eitherToString :: Either (Log Garam) (Log Garam) -> String
+eitherToString (Left x) = toString $ dropLog x
+eitherToString (Right y) = toString $ dropLog y
 
 compFromFiles :: FilePath -> FilePath -> Expectation
 compFromFiles f1 f2 = do

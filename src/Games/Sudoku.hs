@@ -15,7 +15,6 @@ module Games.Sudoku (
   fromString,
   toString,
   solveSudoku,
-  solveSudokuWithLog,
   processSudoku
   ) where
 
@@ -27,9 +26,8 @@ import Text.Printf ( printf )
 import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
                       hDifference', hNotIn, cToChar )
 import Commons.Digit ( Digit(..) )
-import Commons.Iterator ( solveWithIt, solveWithLogAndIt )
-import Commons.Log ( Message(..), Log, dropLog, describeChange, record,
-                     records )
+import Commons.Iterator ( solveWithIt )
+import Commons.Log ( Message(..), Log, describeChange, record, records )
 import Commons.Parsing ( parse, unparse )
 
 -- | A Sudoku grid.
@@ -246,37 +244,26 @@ subset v = case x of
                    Just c -> (j, c)
             else (j, Right h')
 
--- | Rules to apply to increase the available information on a view.
-shrink :: View -> View
-shrink = dropLog . shrinkWithLog
-
 -- | Rules to apply to increase the available information on a view. Record
 -- the process.
-shrinkWithLog :: View -> Log View
-shrinkWithLog v = (unique v) >>= only >>= subset
+shrink :: View -> Log View
+shrink v = (unique v) >>= only >>= subset
 
 -- | Get the grid behind the given view.
 unview :: View -> Sudoku
 unview v = Sk (grid v)
 
--- | Solve a Sudoku grid.
+-- | Solve a Sudoku grid, and record how the cells are progressively simplified.
 solveSudoku :: Integral n
             => n            -- ^ Number of iterations before giving up
             -> Sudoku       -- ^ Initial grid
-            -> Either Sudoku Sudoku
+            -> Either (Log Sudoku) (Log Sudoku)
 solveSudoku limit g0 = solveWithIt limit g0 allViews select shrink unview
 
--- | Solve a Sudoku grid, and record how the cells are progressively simplified.
-solveSudokuWithLog :: Integral n
-                   => n            -- ^ Number of iterations before giving up
-                   -> Sudoku       -- ^ Initial grid
-                   -> Either (Log Sudoku) (Log Sudoku)
-solveSudokuWithLog limit g0 = solveWithLogAndIt limit g0 allViews select shrinkWithLog unview
-
 -- | Parse, solve and unparse a Sudoku puzzle.
-processSudoku :: Integral n => n -> String -> (String, Maybe String)
+processSudoku :: Integral n => n -> String -> (String, Maybe (Log String))
 processSudoku limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just s -> case solveSudoku limit s of
-    Left s' -> ("unable to solve the puzzle!", Just $ toString s')
-    Right s' -> ("", Just $ toString s')
+    Left s' -> ("unable to solve the puzzle!", Just $ fmap toString s')
+    Right s' -> ("", Just $ fmap toString s')

@@ -13,7 +13,6 @@ module Games.Garam (
   fromString,
   toString,
   solveGaram,
-  solveGaramWithLog,
   processGaram
   ) where
 
@@ -23,7 +22,7 @@ import Data.Vector ( Vector, (!), (//) )
 import Text.Printf ( printf )
 import Commons.Digit ( Digit(..), toInt )
 import Commons.Cell ( Cell, cToSet, cToChar, cFilter, hFromSet )
-import Commons.Iterator ( solveWithIt, solveWithLogAndIt )
+import Commons.Iterator ( solveWithIt )
 import Commons.Log ( Message(..), Log, describeChange, record )
 import Commons.Parsing ( parse, unparse )
 
@@ -315,17 +314,9 @@ hasCorrectCombination2 xs op ys zs1 zs2 = foldr go1 False xs
 simplify :: Equation Expr1 Expr2 -> Cell Digit
 simplify eq = cFilter (validate eq) (unknown eq)
 
--- | Increase the available information on the unknown.
-shrink :: View -> View
-shrink v = v { vgrid = (vgrid v) // [(i, new)] }
-  where
-    i = unknownIdx (focus v)
-    eq = fromIdx (unview v) (focus v)
-    new = simplify eq
-
 -- | Increase the available information on the unknown, and record the process.
-shrinkWithLog :: View -> Log View
-shrinkWithLog v = record m v'
+shrink :: View -> Log View
+shrink v = record m v'
   where
     i = unknownIdx (focus v)
     eq = fromIdx (unview v) (focus v)
@@ -342,24 +333,17 @@ unview v = G { grid = vgrid v
              , operators = voperators v
              }
 
--- | Solve a Garam grid.
+-- | Solve a Garam grid, and record how the cells are progessively simplified.
 solveGaram :: Integral n
            => n               -- ^ Number of iterations before giving up
            -> Garam           -- ^ Initial grid
-           -> Either Garam Garam
+           -> Either (Log Garam) (Log Garam)
 solveGaram limit g0 = solveWithIt limit g0 allViews select shrink unview
 
--- | Solve a Garam grid, and record how the cells are progessively simplified.
-solveGaramWithLog :: Integral n
-                  => n               -- ^ Number of iterations before giving up
-                  -> Garam           -- ^ Initial grid
-                  -> Either (Log Garam) (Log Garam)
-solveGaramWithLog limit g0 = solveWithLogAndIt limit g0 allViews select shrinkWithLog unview
-
 -- | Parse, solve and unparse a Garam puzzle.
-processGaram :: Integral n => n -> String -> (String, Maybe String)
+processGaram :: Integral n => n -> String -> (String, Maybe (Log String))
 processGaram limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just g -> case solveGaram limit g of
-    Left g' -> ("unable to solve the puzzle!", Just $ toString g')
-    Right g' -> ("", Just $ toString g')
+    Left g' -> ("unable to solve the puzzle!", Just $ fmap toString g')
+    Right g' -> ("", Just $ fmap toString g')

@@ -15,7 +15,6 @@ module Games.Futoshiki (
   fromString,
   toString,
   solveFutoshiki,
-  solveFutoshikiWithLog,
   processFutoshiki
   ) where
 
@@ -29,9 +28,8 @@ import Commons.Cell ( Hole, Cell, hFromSet, hToSet, hSize, hDifference,
                       hDifference', hNotIn, cToChar, cMin, cMax, hLowerBound,
                       hUpperBound )
 import Commons.Digit ( Digit(..) )
-import Commons.Iterator ( solveWithIt, solveWithLogAndIt )
-import Commons.Log ( Message(..), Log, dropLog, describeChange, record,
-                     records )
+import Commons.Iterator ( solveWithIt )
+import Commons.Log ( Message(..), Log, describeChange, record, records )
 import Commons.Parsing ( parse, unparse )
 
 -- | A comparison sign: > (Gt) or < (Lt).
@@ -348,14 +346,10 @@ subset v = case vec ! i of
                    Just c -> (j, c)
             else (j, Right h')
 
--- | Rules to apply to increase the available information on a view.
-shrink :: View -> View
-shrink = dropLog . shrinkWithLog
-
 -- | Rules to apply to increase the available information on a view. Record
 -- the process.
-shrinkWithLog :: View -> Log View
-shrinkWithLog v = (comparison v) >>= unique >>= only >>= subset
+shrink :: View -> Log View
+shrink v = (comparison v) >>= unique >>= only >>= subset
 
 -- | Get the grid behind the given view.
 unview :: View -> Futoshiki
@@ -363,25 +357,18 @@ unview v = F { grid = vgrid v
              , signs = vsigns v
              }
 
--- | Solve a Futoshiki grid.
+-- | Solve a Futoshiki grid, and record how the cells are progressively
+-- simplified.
 solveFutoshiki :: Integral n
                => n               -- ^ Number of iterations before giving up
                -> Futoshiki       -- ^ Initial grid
-               -> Either Futoshiki Futoshiki
+               -> Either (Log Futoshiki) (Log Futoshiki)
 solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select shrink unview
 
--- | Solve a Futoshiki grid, and record how the cells are progressively
--- simplified.
-solveFutoshikiWithLog :: Integral n
-                      => n               -- ^ Number of iterations before giving up
-                      -> Futoshiki       -- ^ Initial grid
-                      -> Either (Log Futoshiki) (Log Futoshiki)
-solveFutoshikiWithLog limit g0 = solveWithLogAndIt limit g0 (allViews g0) select shrinkWithLog unview
-
 -- | Parse, solve and unparse a Futoshiki puzzle.
-processFutoshiki :: Integral n => n -> String -> (String, Maybe String)
+processFutoshiki :: Integral n => n -> String -> (String, Maybe (Log String))
 processFutoshiki limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just f -> case solveFutoshiki limit f of
-    Left f' -> ("unable to solve the puzzle!", Just $ toString f')
-    Right f' -> ("", Just $ toString f')
+    Left f' -> ("unable to solve the puzzle!", Just $ fmap toString f')
+    Right f' -> ("", Just $ fmap toString f')

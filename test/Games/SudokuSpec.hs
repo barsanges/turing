@@ -10,11 +10,12 @@ module Games.SudokuSpec ( spec ) where
 
 import Test.Hspec
 import Data.Maybe ( fromJust )
+import Commons.Log ( Log, dropLog )
 import Games.Sudoku
 
-eitherToString :: Either Sudoku Sudoku -> String
-eitherToString (Left x) = toString x
-eitherToString (Right y) = toString y
+eitherToString :: Either (Log Sudoku) (Log Sudoku) -> String
+eitherToString (Left x) = toString $ dropLog x
+eitherToString (Right y) = toString $ dropLog y
 
 compFromFiles :: FilePath -> FilePath -> Expectation
 compFromFiles f1 f2 = do

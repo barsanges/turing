@@ -11,6 +11,7 @@ module Games.FutoshikiSpec ( spec ) where
 import Test.Hspec
 import Data.Char ( isSpace )
 import Data.Maybe ( fromJust )
+import Commons.Log ( Log, dropLog )
 import Games.Futoshiki
 
 trimEnd :: String -> String
@@ -19,9 +20,9 @@ trimEnd s = reverse (dropWhile isSpace (reverse s))
 trimLinesEnd :: String -> String
 trimLinesEnd s = unlines (fmap trimEnd (lines s))
 
-eitherToString :: Either Futoshiki Futoshiki -> String
-eitherToString (Left x) = trimLinesEnd (toString x)
-eitherToString (Right y) = trimLinesEnd (toString y)
+eitherToString :: Either (Log Futoshiki) (Log Futoshiki) -> String
+eitherToString (Left x) = trimLinesEnd (toString $ dropLog x)
+eitherToString (Right y) = trimLinesEnd (toString $ dropLog y)
 
 compFromFiles :: FilePath -> FilePath -> Expectation
 compFromFiles f1 f2 = do

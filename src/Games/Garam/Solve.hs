@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 {- |
-   Module      : Games.Garam
+   Module      : Games.Garam.Solve
    Copyright   : Copyright (C) 2021 barsanges
    License     : GNU GPL, version 3
 

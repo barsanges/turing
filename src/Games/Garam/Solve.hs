@@ -10,15 +10,18 @@ Solve a Garam puzzle: fill a grid so that each operation is correct.
 
 module Games.Garam.Solve (
   Garam,
+  Op(..),
   fromString,
   toString,
+  fromElements,
   solveGaram,
   processGaram
   ) where
 
+import qualified Data.IntMap as IM
 import qualified Data.Set as S
 import qualified Data.Text as T
-import Data.Vector ( Vector, (!), (//) )
+import Data.Vector ( Vector, (!), (//), generate )
 import Text.Printf ( printf )
 import Commons.Digit ( Digit(..), toInt )
 import Commons.Cell ( Cell, cToSet, cToChar, cFilter, hFromSet )
@@ -140,6 +143,26 @@ toString f = res
     opToChar Plus = '+'
     opToChar Minus = '-'
     opToChar Mul = 'x'
+
+-- | Create a Garam grid from a vector of operators and a map of the known
+-- values. The grid may be incorrect or impossible to solve.
+fromElements :: Vector Op -> IM.IntMap Digit -> Maybe Garam
+fromElements ops vals
+  | length ops /= 36 = Nothing
+  | any (\ n -> n >= 0 && n <= 43) (IM.keys vals) = Nothing
+  | otherwise = Just $ G { grid = generate 44 go, operators = ops }
+  where
+    go :: Int -> Cell'
+    go n = case IM.lookup n vals of
+      Just x -> Left x
+      Nothing -> Right (hFromSet Zero One (S.fromList [Two,
+                                                       Three,
+                                                       Four,
+                                                       Five,
+                                                       Six,
+                                                       Seven,
+                                                       Eight,
+                                                       Nine]))
 
 -- | Turn the "index" of a view into a string.
 toLocationId :: Equation Idx1 Idx2 -> T.Text

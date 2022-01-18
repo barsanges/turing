@@ -23,8 +23,10 @@ library:
 
 executables:
   turing:
-    source-dirs:      src
+    source-dirs:      apps/solve
     main:             Main.hs
+    dependencies:
+    - turing
 
 tests:
   turing-test:

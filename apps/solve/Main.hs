@@ -11,7 +11,7 @@ module Main where
 import Options.Applicative
 import Data.Text as T
 import Commons.Log ( dropLog, getLog )
-import Games.Garam ( processGaram )
+import Games.Garam.Solve ( processGaram )
 import Games.Futoshiki ( processFutoshiki )
 import Games.Sudoku ( processSudoku )
 

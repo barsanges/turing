@@ -8,7 +8,7 @@
 Solve a Garam puzzle: fill a grid so that each operation is correct.
 -}
 
-module Games.Garam (
+module Games.Garam.Solve (
   Garam,
   fromString,
   toString,

@@ -11,7 +11,7 @@ module Games.GaramSpec ( spec ) where
 import Test.Hspec
 import Data.Maybe ( fromJust )
 import Commons.Log ( Log, dropLog )
-import Games.Garam
+import Games.Garam.Solve
 
 eitherToString :: Either (Log Garam) (Log Garam) -> String
 eitherToString (Left x) = toString $ dropLog x

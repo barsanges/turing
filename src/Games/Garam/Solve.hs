@@ -148,7 +148,7 @@ toString f = res
 -- values. The grid may be incorrect or impossible to solve.
 fromElements :: Vector Op -> IM.IntMap Digit -> Maybe Garam
 fromElements ops vals
-  | length ops /= 36 = Nothing
+  | length ops /= 20 = Nothing
   | any (\ n -> n >= 0 && n <= 43) (IM.keys vals) = Nothing
   | otherwise = Just $ G { grid = generate 44 go, operators = ops }
   where

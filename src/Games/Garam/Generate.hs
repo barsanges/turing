@@ -142,9 +142,6 @@ generateLimit niter nvalues limit initGen = go 0 initGen
       where
         (res, gen') = generateOne niter nvalues gen
 
-
-
-
 -- | Return a text corresponding to a cell drawn with Latex/TikZ.
 latexCell :: T.Text -> Maybe T.Text -> T.Text -> T.Text
 latexCell n mplace value =

@@ -145,17 +145,17 @@ generateLimit niter nvalues limit initGen = go 0 initGen
 -- | Return a text corresponding to a cell drawn with Latex/TikZ.
 latexCell :: T.Text -> Maybe T.Text -> T.Text -> T.Text
 latexCell n mplace value =
-  T.replace (T.replace placed "NODE" n) "VALUE" value
+  T.replace "VALUE" value (T.replace "NODE" n placed)
   where
     base = "\\node[draw,minimum width=1cm,minimum height=1cm,PLACE] (NODE) {VALUE};"
     placed = case mplace of
-      Just place -> T.replace base "PLACE" place
+      Just place -> T.replace "PLACE" place base
       Nothing -> "\\node[draw,minimum width=1cm,minimum height=1cm] (NODE) at (0, 0) {VALUE};"
 
 -- | Return a text corresponding to an operator drawn with Latex/TikZ.
 latexOp :: (T.Text, T.Text) -> Op -> T.Text
 latexOp (n1, n2) op =
-  T.replace (T.replace base "#1" n1) "#2" n2
+  T.replace "#2" n2 (T.replace "#1" n1 base)
   where
     base = case op of
       Plus -> plus
@@ -170,7 +170,7 @@ latexOp (n1, n2) op =
 -- | Return a text corresponding to an equal sign drawn with Latex/TikZ.
 latexEq :: (T.Text, T.Text) -> T.Text
 latexEq (n1, n2) =
-  T.replace (T.replace base "#1" n1) "#2" n2
+  T.replace "#2" n2 (T.replace "#1" n1 base)
   where
     base = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.07)$) -- ($(#1)!0.5!(#2) + (0.15,0.07)$);\
            \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,-0.07)$) -- ($(#1)!0.5!(#2) + (0.15,-0.07)$);"

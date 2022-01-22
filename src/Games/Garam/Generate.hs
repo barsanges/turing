@@ -22,6 +22,7 @@ import Games.Garam.Solve ( Op(..), Garam, fromElements, solveGaram )
 
 -- | A Garam grid that may be solved.
 data Result = Res (V.Vector Op) (IM.IntMap Digit)
+  deriving Show
 
 -- | Pop the value at index `n`.
 pop :: V.Vector a -> Int -> (a, V.Vector a)
@@ -32,8 +33,8 @@ pop xs n = (xs V.! n, xs_ V.++ _xs)
 
 -- | Return a 'n' length list of unique elements chosen from the vector. Used
 -- for random sampling without replacement.
-sample :: R.RandomGen g => Int -> V.Vector a -> g -> (V.Vector a, g)
-sample nsamples initXs initGen = (V.fromList res, lastGen)
+sample :: R.RandomGen g => Int -> V.Vector a -> g -> ([a], g)
+sample nsamples initXs initGen = (res, lastGen)
   where
     (res, lastGen) = go nsamples initXs initGen
 
@@ -41,7 +42,7 @@ sample nsamples initXs initGen = (V.fromList res, lastGen)
     go 0 _ gen = ([], gen)
     go n xs gen = (y:ys, gen'')
       where
-        (i, gen') = R.uniformR (0, V.length xs) gen
+        (i, gen') = R.uniformR (0, (V.length xs) - 1) gen
         (y, xs') = pop xs i
         (ys, gen'') = go (n-1) xs' gen'
 

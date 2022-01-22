@@ -76,7 +76,7 @@ argsParser = Args
 args :: ParserInfo Args
 args = info (argsParser <**> helper)
   ( fullDesc
-  <> header "turing"
+  <> header "turing - solve"
   <> progDesc "Solve a mathematical puzzle" )
 
 -- | Application entry point.

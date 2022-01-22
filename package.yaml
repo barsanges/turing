@@ -23,8 +23,14 @@ library:
   source-dirs: src
 
 executables:
-  turing:
+  turing-solve:
     source-dirs:      apps/solve
+    main:             Main.hs
+    dependencies:
+    - turing
+
+  turing-generate:
+    source-dirs:      apps/generate
     main:             Main.hs
     dependencies:
     - turing

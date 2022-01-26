@@ -14,6 +14,7 @@ module Games.Garam.Solve (
   fromString,
   toString,
   fromElements,
+  getValues,
   solveGaram,
   processGaram
   ) where
@@ -21,7 +22,7 @@ module Games.Garam.Solve (
 import qualified Data.IntMap as IM
 import qualified Data.Set as S
 import qualified Data.Text as T
-import Data.Vector ( Vector, (!), (//), generate )
+import Data.Vector ( Vector, (!), (//), generate, fromList )
 import Text.Printf ( printf )
 import Commons.Digit ( Digit(..), toInt )
 import Commons.Cell ( Cell, cToSet, cToChar, cFilter, hFromSet )
@@ -163,6 +164,12 @@ fromElements ops vals
                                                        Seven,
                                                        Eight,
                                                        Nine]))
+
+-- | Get the values of the cells in the grid.
+getValues :: Garam -> Vector (Vector Digit)
+getValues g = fmap toVec (grid g)
+  where
+    toVec = fromList . S.toList . cToSet
 
 -- | Turn the "index" of a view into a string.
 toLocationId :: Equation Idx1 Idx2 -> T.Text

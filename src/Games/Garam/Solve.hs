@@ -37,7 +37,7 @@ type Cell' = Cell Digit
 data Garam = G { grid :: Vector Cell'
                , operators :: Vector Op
                }
-  deriving Show
+  deriving (Show, Eq)
 
 -- | A view of the grid, focused on a specific cell within a specific area.
 data View = V { focus :: Equation Idx1 Idx2
@@ -49,7 +49,7 @@ data View = V { focus :: Equation Idx1 Idx2
 data Op = Plus
         | Minus
         | Mul
-  deriving Show
+  deriving (Show, Eq)
 
 -- | An indexer for an expression which right hand side is one digit long.
 data Idx1 = Idx1 Int Int Int Int

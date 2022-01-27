@@ -13,38 +13,18 @@ module Games.Garam.Generate (
   ) where
 
 import qualified Data.IntMap as IM
+import qualified Data.IntSet as IS
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified System.Random as R
 import Commons.Digit ( Digit(..) )
-import Games.Garam.Solve ( Op(..), Garam, fromElements, solveGaram )
+import Commons.Log ( dropLog )
+import Games.Garam.Solve ( Op(..), Garam, fromElements, getValues, solveGaram )
 
 -- | A Garam grid that may be solved.
 data Result = Res (V.Vector Op) (IM.IntMap Digit)
   deriving Show
-
--- | Pop the value at index `n`.
-pop :: V.Vector a -> Int -> (a, V.Vector a)
-pop xs n = (xs V.! n, xs_ V.++ _xs)
-  where
-    xs_ = V.slice 0 n xs
-    _xs = V.slice (n+1) ((V.length xs) - (n+1)) xs
-
--- | Return a 'n' length list of unique elements chosen from the vector. Used
--- for random sampling without replacement.
-sample :: R.RandomGen g => Int -> V.Vector a -> g -> ([a], g)
-sample nsamples initXs initGen = (res, lastGen)
-  where
-    (res, lastGen) = go nsamples initXs initGen
-
-    go :: R.RandomGen g => Int -> V.Vector a -> g -> ([a], g)
-    go 0 _ gen = ([], gen)
-    go n xs gen = (y:ys, gen'')
-      where
-        (i, gen') = R.uniformR (0, (V.length xs) - 1) gen
-        (y, xs') = pop xs i
-        (ys, gen'') = go (n-1) xs' gen'
 
 -- | Generate a random value from the range 'rng', using the conversion function
 -- 'f'.
@@ -59,18 +39,11 @@ opFromInt 0 = Plus
 opFromInt 1 = Mul
 opFromInt _ = Minus
 
--- | Turn an int to a digit.
-digitFromInt :: Int -> Digit
-digitFromInt 0 = Zero
-digitFromInt 1 = One
-digitFromInt 2 = Two
-digitFromInt 3 = Three
-digitFromInt 4 = Four
-digitFromInt 5 = Five
-digitFromInt 6 = Six
-digitFromInt 7 = Seven
-digitFromInt 8 = Eight
-digitFromInt _ = Nine
+-- | Randomly pick a value in a vector.
+pick :: R.RandomGen g => V.Vector a -> g -> (a, g)
+pick xs gen = (xs V.! idx, gen')
+  where
+    (idx, gen') = R.uniformR (0, (V.length xs) - 1) gen
 
 -- | Generate a vector of random operator for a Garam grid.
 generateOps :: R.RandomGen g => g -> (V.Vector Op, g)
@@ -85,21 +58,42 @@ generateOps initGen = foldr go (initVec, initGen) [0..19]
                      then rand opFromInt (0, 1) gen -- +, *
                      else rand opFromInt (0, 2) gen -- +, *, -
 
--- | Generate an int map of random values for a Garam grid.
-generateValues :: R.RandomGen g => Int -> g -> (IM.IntMap Digit, g)
-generateValues nvalues initGen = foldr go (IM.empty, gen2) indices
-  where
-    initIndices = V.fromList [0..43]
-    (indices, gen2) = sample nvalues initIndices initGen
+-- | Recursively populate a Garam grid with values compatible with
+-- the ones already in place.
+generateValues :: R.RandomGen g
+               => V.Vector Op
+               -> Int
+               -> Int
+               -> g
+               -> (Maybe (IM.IntMap Digit), g)
+generateValues ops nshrink nvalues initGen =
+  case fromElements ops IM.empty of
+    Nothing -> (Nothing, initGen) -- Should not happen in practice
+    Just initGrid -> go IM.empty (simplify initGrid) nvalues initGen
 
-    go :: R.RandomGen g => Int -> (IM.IntMap Digit, g) -> (IM.IntMap Digit, g)
-    go n (xs, gen) = (IM.insert n val xs, gen')
+  where
+
+    go vals g n gen
+      | n <= 0 = (Just vals, gen)
+      | otherwise = case fromElements ops vals' of
+          Nothing -> (Nothing, gen2) -- Should not happen in practice
+          Just g' -> let g'' = simplify g'
+                     in if g'' == g
+                        then (Nothing, gen2)
+                        else go vals' g'' (n-1) gen2
       where
-        (val, gen') = if S.member n (S.fromList [1, 4, 8, 15, 16, 17, 18, 19,
-                                                 20, 21, 22, 24, 27, 31, 38, 39,
-                                                 40, 41, 41, 43])
-                      then rand digitFromInt (0, 9) gen
-                      else rand digitFromInt (1, 9) gen
+        freeIndexes = IS.difference allIndexes (IM.keysSet vals)
+        (idx, gen1) = pick (V.fromList $ IS.toList freeIndexes) initGen
+        xs = getValues g
+        (x, gen2) = pick (xs V.! idx) gen1
+        vals' = IM.insert idx x vals
+
+    allIndexes = IS.fromDistinctAscList [0..43]
+
+    simplify :: Garam -> Garam
+    simplify grid = case solveGaram nshrink grid of
+                      Left grid' -> dropLog grid'
+                      Right grid' -> dropLog grid'
 
 -- | Test if a grid may be solved in 'niter' iterations.
 validate :: Integral n => n -> Garam -> Bool
@@ -112,16 +106,19 @@ validate niter garam = case solveGaram niter garam of
 generateOne :: (Integral n, R.RandomGen g)
             => n
             -> Int
+            -> Int
             -> g
             -> (Maybe Result, g)
-generateOne niter nvalues gen = (res, gen2)
+generateOne niter nshrink nvalues gen = (res, gen2)
   where
     (ops, gen1) = generateOps gen
-    (values, gen2) = generateValues nvalues gen1
-    attempt = fromElements ops values
-    res = case fmap (validate niter) attempt of
-            Just True -> Just (Res ops values)
-            _ -> Nothing
+    (mvals, gen2) = generateValues ops nshrink nvalues gen1
+    -- Ugly
+    res = case mvals of
+      Just vals -> case fmap (validate niter) (fromElements ops vals) of
+                     Just True -> Just (Res ops vals)
+                     _ -> Nothing
+      Nothing -> Nothing
 
 -- | Try to generate a solvable Garam grid with 'nvalues' known at the
 -- beginning. Give up if it takes more than 'limit' attempts to find a
@@ -130,9 +127,10 @@ generateLimit :: (Integral n, R.RandomGen g)
               => n
               -> Int
               -> Int
+              -> Int
               -> g
               -> (Maybe Result, g)
-generateLimit niter nvalues limit initGen = go 0 initGen
+generateLimit niter nshrink nvalues limit initGen = go 0 initGen
   where
     go :: R.RandomGen g => Int -> g -> (Maybe Result, g)
     go i gen = if i >= limit
@@ -141,7 +139,7 @@ generateLimit niter nvalues limit initGen = go 0 initGen
                       Just _ -> (res, gen')
                       Nothing -> go (i+1) gen'
       where
-        (res, gen') = generateOne niter nvalues gen
+        (res, gen') = generateOne niter nshrink nvalues gen
 
 -- | Return a text corresponding to a cell drawn with Latex/TikZ.
 latexCell :: T.Text -> Maybe T.Text -> T.Text -> T.Text
@@ -288,17 +286,20 @@ generateGaram :: (Integral n, Show n)
               -> n
               -> Int
               -> Int
+              -> Int
               -> T.Text
-generateGaram seed ngrids niter nvalues limit = T.append header grids
+generateGaram seed ngrids niter nshrink nvalues limit = T.append header grids
   where
     header = T.pack ("Graine : " ++ show seed
                      ++ "\nNombre d'itérations : " ++ show niter
-                     ++ "\nNombre de valeurs :" ++ show nvalues
+                     ++ "\nNombre de simplifications : " ++ show nshrink
+                     ++ "\nNombre de valeurs : " ++ show nvalues
+                     ++ "\nLimite : " ++ show limit
                      ++ "\n")
     initGen = R.mkStdGen seed
     grids = T.intercalate "\n" (fst $ foldr go ([], initGen) [1..ngrids])
 
     go :: R.RandomGen g => Int -> ([T.Text], g) -> ([T.Text], g)
-    go _ (xs, gen) = case generateLimit niter nvalues limit gen of
+    go _ (xs, gen) = case generateLimit niter nshrink nvalues limit gen of
       (Just g, gen') -> ((toLatex g):xs, gen')
       (Nothing, gen') -> (xs, gen')

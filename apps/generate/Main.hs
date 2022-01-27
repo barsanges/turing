@@ -16,6 +16,7 @@ data Args = Args
   { seed :: Int
   , npuzzles :: Int
   , niter :: Int
+  , nshrink :: Int
   , nvalues :: Int
   , limit :: Int
   , outputFile :: String
@@ -37,6 +38,11 @@ argsParser = Args
        ( short 'n'
          <> metavar "NITER"
          <> help "number of iterations allowed to solve one puzzle"
+       ))
+  <*> (option auto
+       ( short 'k'
+         <> metavar "NSHRINK"
+         <> help "number of iterations used to shrink the grid when generating new values"
        ))
   <*> (option auto
        ( short 'v'
@@ -65,5 +71,5 @@ args = info (argsParser <**> helper)
 main :: IO ()
 main = do
   cli <- execParser args
-  let res = generateGaram (seed cli) (npuzzles cli) (niter cli) (nvalues cli) (limit cli)
+  let res = generateGaram (seed cli) (npuzzles cli) (niter cli) (nshrink cli) (nvalues cli) (limit cli)
   T.writeFile (outputFile cli) res

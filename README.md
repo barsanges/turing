@@ -14,3 +14,12 @@ able to solve simple instances of the following games:
 * [Sudoku](https://en.wikipedia.org/wiki/Sudoku): fill a 9x9 grid with
   digits so that each column, each row, and each of the nine 3x3
   blocks that compose the grid contains all of the digits from 1 to 9.
+
+`Turing` is also able to generate Garam puzzles.
+
+## TODO
+
+- [ ] Refactor and reorder the code to try to decouple the different
+      puzzle types.
+
+- [ ] Add generators for Sudoku and Futoshiki.

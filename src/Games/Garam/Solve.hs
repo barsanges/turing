@@ -15,6 +15,7 @@ module Games.Garam.Solve (
   toString,
   fromElements,
   getValues,
+  setValue,
   solveGaram,
   processGaram
   ) where
@@ -170,6 +171,10 @@ getValues :: Garam -> Vector (Vector Digit)
 getValues g = fmap toVec (grid g)
   where
     toVec = fromList . S.toList . cToSet
+
+-- | Set the value of a cell.
+setValue :: Int -> Digit -> Garam -> Garam
+setValue n x g = g { grid = (grid g) // [(n, Left x)] }
 
 -- | Turn the "index" of a view into a string.
 toLocationId :: Equation Idx1 Idx2 -> T.Text

@@ -27,6 +27,8 @@ argsParser = Args
   <$> (option auto
        ( short 's'
          <> metavar "SEED"
+         <> value 0
+         <> showDefault
          <> help "random generator seed"
        ))
   <*> (option auto
@@ -37,11 +39,15 @@ argsParser = Args
   <*> (option auto
        ( short 'n'
          <> metavar "NITER"
+         <> value 100000
+         <> showDefault
          <> help "number of iterations allowed to solve one puzzle"
        ))
   <*> (option auto
        ( short 'k'
          <> metavar "NSHRINK"
+         <> value 2000
+         <> showDefault
          <> help "number of iterations used to shrink the grid when generating new values"
        ))
   <*> (option auto
@@ -52,6 +58,8 @@ argsParser = Args
   <*> (option auto
        ( short 'l'
          <> metavar "LIMIT"
+         <> value 100
+         <> showDefault
          <> help "number of attempts allowed before giving up"
        ))
   <*> (strOption

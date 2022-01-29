@@ -144,10 +144,10 @@ latexCell :: T.Text -> Maybe T.Text -> T.Text -> T.Text
 latexCell n mplace value =
   T.replace "VALUE" value (T.replace "NODE" n placed)
   where
-    base = "\\node[draw,minimum width=1cm,minimum height=1cm,PLACE] (NODE) {VALUE};"
+    base = "\\node[draw,minimum width=1cm,minimum height=1cm,PLACE] (NODE) {VALUE};\n"
     placed = case mplace of
       Just place -> T.replace "PLACE" place base
-      Nothing -> "\\node[draw,minimum width=1cm,minimum height=1cm] (NODE) at (0, 0) {VALUE};"
+      Nothing -> "\\node[draw,minimum width=1cm,minimum height=1cm] (NODE) at (0, 0) {VALUE};\n"
 
 -- | Return a text corresponding to an operator drawn with Latex/TikZ.
 latexOp :: (T.Text, T.Text) -> Op -> T.Text
@@ -158,25 +158,25 @@ latexOp (n1, n2) op =
       Plus -> plus
       Mul -> mul
       Minus -> minus
-    plus = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.0)$) -- ($(#1)!0.5!(#2) + (0.15,0.0)$);\
-           \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (0.0,-0.15)$) -- ($(#1)!0.5!(#2) + (0.0,0.15)$);"
-    mul ="\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.1,0.1)$) -- ($(#1)!0.5!(#2) + (0.1,-0.1)$);\
-          \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.1,-0.1)$) -- ($(#1)!0.5!(#2) + (0.1,0.1)$);"
-    minus = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.0)$) -- ($(#1)!0.5!(#2) + (0.15,0.0)$);"
+    plus = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.0)$) -- ($(#1)!0.5!(#2) + (0.15,0.0)$);\n\
+           \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (0.0,-0.15)$) -- ($(#1)!0.5!(#2) + (0.0,0.15)$);\n"
+    mul ="\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.1,0.1)$) -- ($(#1)!0.5!(#2) + (0.1,-0.1)$);\n\
+          \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.1,-0.1)$) -- ($(#1)!0.5!(#2) + (0.1,0.1)$);\n"
+    minus = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.0)$) -- ($(#1)!0.5!(#2) + (0.15,0.0)$);\n"
 
 -- | Return a text corresponding to an equal sign drawn with Latex/TikZ.
 latexEq :: (T.Text, T.Text) -> T.Text
 latexEq (n1, n2) =
   T.replace "#2" n2 (T.replace "#1" n1 base)
   where
-    base = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.07)$) -- ($(#1)!0.5!(#2) + (0.15,0.07)$);\
-           \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,-0.07)$) -- ($(#1)!0.5!(#2) + (0.15,-0.07)$);"
+    base = "\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,0.07)$) -- ($(#1)!0.5!(#2) + (0.15,0.07)$);\n\
+           \\\draw[line width=2pt] ($(#1)!0.5!(#2) + (-0.15,-0.07)$) -- ($(#1)!0.5!(#2) + (0.15,-0.07)$);\n"
 
 -- | Turn a Garam grid into a Latex string.
 toLatex :: Result -> T.Text
 toLatex (Res ops values) = T.concat [open, values', ops', eqSigns, close]
   where
-    open = "\\begin{center}\\begin{tikzpicture}"
+    open = "\\begin{center}\\begin{tikzpicture}\n"
     close = "\\end{tikzpicture}\\end{center}"
     eqSigns = T.concat $ fmap latexEq [ ("1", "2")
                                       , ("4", "5")

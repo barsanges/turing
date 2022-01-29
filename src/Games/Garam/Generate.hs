@@ -20,7 +20,8 @@ import qualified Data.Vector as V
 import qualified System.Random as R
 import Commons.Digit ( Digit(..) )
 import Commons.Log ( dropLog )
-import Games.Garam.Solve ( Op(..), Garam, fromElements, getValues, solveGaram )
+import Games.Garam.Solve ( Op(..), Garam, fromElements, getValues, setValue,
+                           solveGaram )
 
 -- | A Garam grid that may be solved.
 data Result = Res (V.Vector Op) (IM.IntMap Digit)
@@ -69,24 +70,21 @@ generateValues :: R.RandomGen g
 generateValues ops nshrink nvalues initGen =
   case fromElements ops IM.empty of
     Nothing -> (Nothing, initGen) -- Should not happen in practice
-    Just initGrid -> go IM.empty (simplify initGrid) nvalues initGen
+    Just initGrid -> go IM.empty initGrid nvalues initGen
 
   where
 
     go vals g n gen
       | n <= 0 = (Just vals, gen)
-      | otherwise = case fromElements ops vals' of
-          Nothing -> (Nothing, gen2) -- Should not happen in practice
-          Just g' -> let g'' = simplify g'
-                     in if g'' == g
-                        then (Nothing, gen2)
-                        else go vals' g'' (n-1) gen2
+      | otherwise = go vals' g'' (n-1) gen2
       where
+        g' = simplify g
         freeIndexes = IS.difference allIndexes (IM.keysSet vals)
         (idx, gen1) = pick (V.fromList $ IS.toList freeIndexes) initGen
         xs = getValues g
         (x, gen2) = pick (xs V.! idx) gen1
         vals' = IM.insert idx x vals
+        g'' = setValue idx x g'
 
     allIndexes = IS.fromDistinctAscList [0..43]
 

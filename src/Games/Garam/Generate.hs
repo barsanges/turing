@@ -80,7 +80,7 @@ generateValues ops nshrink nvalues initGen =
       where
         g' = simplify g
         freeIndexes = IS.difference allIndexes (IM.keysSet vals)
-        (idx, gen1) = pick (V.fromList $ IS.toList freeIndexes) initGen
+        (idx, gen1) = pick (V.fromList $ IS.toList freeIndexes) gen
         xs = getValues g
         (x, gen2) = pick (xs V.! idx) gen1
         vals' = IM.insert idx x vals

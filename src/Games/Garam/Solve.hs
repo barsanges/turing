@@ -347,20 +347,22 @@ hasCorrectCombination2 xs op ys zs1 zs2 = foldr go1 False xs
           Just (z1, z2) -> (S.member z1 zs1) && (S.member z2 zs2)
 
 -- | Simplify an equation.
-simplify :: Equation Expr1 Expr2 -> Cell Digit
+simplify :: Equation Expr1 Expr2 -> Maybe (Cell Digit)
 simplify eq = cFilter (validate eq) (unknown eq)
 
 -- | Increase the available information on the unknown, and record the process.
 shrink :: View -> Log (Maybe View)
-shrink v = fmap Just $ record m v' -- FIXME: check for impossible grids.
+shrink v = record m v'
   where
     i = unknownIdx (focus v)
     eq = fromIdx (unview v) (focus v)
-    new = simplify eq
-    v' = v { vgrid = (vgrid v) // [(i, new)] }
+    mnew = simplify eq
+    v' = fmap (\ x -> v { vgrid = (vgrid v) // [(i, x)] }) mnew
     m = Mes { locationId = toLocationId (focus v)
             , ruleId = "simplify"
-            , change = describeChange (unknown eq) new
+            , change = case mnew of
+                Just new -> describeChange (unknown eq) new
+                Nothing -> "failed"
             }
 
 -- | Get the grid behind the given view.

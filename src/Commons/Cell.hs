@@ -90,11 +90,9 @@ cMax (Right h) = maximum (hToSet h)
 
 -- | Filter all elements that satisfy the predicate if the cell is a hole. If
 -- the cell is an unique value, 'cFilter f == id'.
-cFilter :: Ord a => (a -> Bool) -> Cell a -> Cell a
-cFilter _ (Left x) = Left x
-cFilter f (Right h) = case hFilter f h of
-  Nothing -> Right h
-  Just c -> c
+cFilter :: Ord a => (a -> Bool) -> Cell a -> Maybe (Cell a)
+cFilter _ (Left x) = Just (Left x)
+cFilter f (Right h) = hFilter f h
 
 -- | Filter all elements that satisfy the predicate.
 hFilter :: Ord a => (a -> Bool) -> Hole a -> Maybe (Cell a)

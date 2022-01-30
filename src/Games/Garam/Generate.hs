@@ -77,23 +77,24 @@ generateValues ops nshrink nvalues initGen =
 
     go vals g n gen
       | n <= 0 = (Just vals, gen)
-      | otherwise = go vals' g'' (n-1) gen2
-      where
-        g' = simplify g
-        freeIndexes = IS.difference allIndexes (IM.keysSet vals)
-        (idx, gen1) = pick (V.fromList $ IS.toList freeIndexes) gen
-        xs = getValues g
-        (x, gen2) = pick (xs V.! idx) gen1
-        vals' = IM.insert idx x vals
-        g'' = setValue idx x g'
+      | otherwise = case simplify g of
+          Nothing -> (Nothing, gen)
+          Just g' -> go vals' g'' (n-1) gen2
+            where
+              freeIndexes = IS.difference allIndexes (IM.keysSet vals)
+              (idx, gen1) = pick (V.fromList $ IS.toList freeIndexes) gen
+              xs = getValues g
+              (x, gen2) = pick (xs V.! idx) gen1
+              vals' = IM.insert idx x vals
+              g'' = setValue idx x g'
 
     allIndexes = IS.fromDistinctAscList [0..43]
 
-    simplify :: Garam -> Garam
+    simplify :: Garam -> Maybe Garam
     simplify grid = case solveGaram nshrink grid of
-                      Impossible _ -> grid -- FIXME!
-                      Partial grid' -> dropLog grid'
-                      Solved grid' -> dropLog grid'
+                      Impossible _ -> Nothing
+                      Partial grid' -> Just (dropLog grid')
+                      Solved grid' -> Just (dropLog grid')
 
 -- | Test if a grid may be solved in 'niter' iterations.
 validate :: Integral n => n -> Garam -> Bool

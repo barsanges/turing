@@ -10,18 +10,20 @@ module Games.GaramSpec ( spec ) where
 
 import Test.Hspec
 import Data.Maybe ( fromJust )
-import Commons.Log ( Log, dropLog )
+import Commons.Log ( dropLog )
+import Commons.Solve ( Solution(..) )
 import Games.Garam.Solve
 
-eitherToString :: Either (Log Garam) (Log Garam) -> String
-eitherToString (Left x) = toString $ dropLog x
-eitherToString (Right y) = toString $ dropLog y
+solutionToString :: Solution Garam -> String
+solutionToString (Impossible _) = ""
+solutionToString (Partial x) = toString $ dropLog x
+solutionToString (Solved y) = toString $ dropLog y
 
 compFromFiles :: FilePath -> FilePath -> Expectation
 compFromFiles f1 f2 = do
   initial <- fmap (fromJust . fromString) (readFile f1)
   expected <- readFile f2
-  eitherToString (solveGaram (5000 :: Int) initial) `shouldBe` expected
+  solutionToString (solveGaram (5000 :: Int) initial) `shouldBe` expected
 
 spec :: Spec
 spec = do

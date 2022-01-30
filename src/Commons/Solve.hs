@@ -18,6 +18,7 @@ import Commons.Log ( Log, (>>*), swap, getLog )
 data Solution grid = Impossible T.Text
                    | Partial (Log grid)
                    | Solved (Log grid)
+  deriving Show
 
 -- | Solve a mathematical puzzle, and record which rules are applied to the
 -- grid.

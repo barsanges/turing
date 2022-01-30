@@ -19,6 +19,8 @@ able to solve simple instances of the following games:
 
 ## TODO
 
+- [ ] Detect broken grids for Sudoku and Futoshiki.
+
 - [ ] Refactor and reorder the code to try to decouple the different
       puzzle types.
 

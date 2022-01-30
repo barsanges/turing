@@ -30,6 +30,7 @@ import Commons.Cell ( Cell, cToSet, cToChar, cFilter, hFromSet )
 import Commons.Iterator ( solveWithIt )
 import Commons.Log ( Message(..), Log, describeChange, record )
 import Commons.Parsing ( parse, unparse )
+import Commons.Solve ( Solution(..) )
 
 -- | Shorthand for 'Cell Digit'.
 type Cell' = Cell Digit
@@ -350,8 +351,8 @@ simplify :: Equation Expr1 Expr2 -> Cell Digit
 simplify eq = cFilter (validate eq) (unknown eq)
 
 -- | Increase the available information on the unknown, and record the process.
-shrink :: View -> Log View
-shrink v = record m v'
+shrink :: View -> Log (Maybe View)
+shrink v = fmap Just $ record m v' -- FIXME: check for impossible grids.
   where
     i = unknownIdx (focus v)
     eq = fromIdx (unview v) (focus v)
@@ -372,7 +373,7 @@ unview v = G { grid = vgrid v
 solveGaram :: Integral n
            => n               -- ^ Number of iterations before giving up
            -> Garam           -- ^ Initial grid
-           -> Either (Log Garam) (Log Garam)
+           -> Solution Garam
 solveGaram limit g0 = solveWithIt limit g0 allViews select shrink unview
 
 -- | Parse, solve and unparse a Garam puzzle.
@@ -380,5 +381,6 @@ processGaram :: Integral n => n -> String -> (String, Maybe (Log String))
 processGaram limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just g -> case solveGaram limit g of
-    Left g' -> ("unable to solve the puzzle!", Just $ fmap toString g')
-    Right g' -> ("", Just $ fmap toString g')
+    Impossible txt -> (T.unpack txt, Nothing)
+    Partial g' -> ("unable to solve the puzzle!", Just $ fmap toString g')
+    Solved g' -> ("", Just $ fmap toString g')

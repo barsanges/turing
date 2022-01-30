@@ -29,6 +29,7 @@ import Commons.Digit ( Digit(..) )
 import Commons.Iterator ( solveWithIt )
 import Commons.Log ( Message(..), Log, describeChange, record, records )
 import Commons.Parsing ( parse, unparse )
+import Commons.Solve ( Solution(..) )
 
 -- | A Sudoku grid.
 newtype Sudoku = Sk (Vector (Cell Digit))
@@ -246,8 +247,9 @@ subset v = case x of
 
 -- | Rules to apply to increase the available information on a view. Record
 -- the process.
-shrink :: View -> Log View
-shrink v = (unique v) >>= only >>= subset
+shrink :: View -> Log (Maybe View)
+shrink v = fmap Just $ (unique v) >>= only >>= subset
+-- FIXME: check for impossible grids.
 
 -- | Get the grid behind the given view.
 unview :: View -> Sudoku
@@ -257,7 +259,7 @@ unview v = Sk (grid v)
 solveSudoku :: Integral n
             => n            -- ^ Number of iterations before giving up
             -> Sudoku       -- ^ Initial grid
-            -> Either (Log Sudoku) (Log Sudoku)
+            -> Solution Sudoku
 solveSudoku limit g0 = solveWithIt limit g0 allViews select shrink unview
 
 -- | Parse, solve and unparse a Sudoku puzzle.
@@ -265,5 +267,6 @@ processSudoku :: Integral n => n -> String -> (String, Maybe (Log String))
 processSudoku limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just s -> case solveSudoku limit s of
-    Left s' -> ("unable to solve the puzzle!", Just $ fmap toString s')
-    Right s' -> ("", Just $ fmap toString s')
+    Impossible txt -> (T.unpack txt, Nothing)
+    Partial s' -> ("unable to solve the puzzle!", Just $ fmap toString s')
+    Solved s' -> ("", Just $ fmap toString s')

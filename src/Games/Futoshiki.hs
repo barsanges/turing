@@ -31,6 +31,7 @@ import Commons.Digit ( Digit(..) )
 import Commons.Iterator ( solveWithIt )
 import Commons.Log ( Message(..), Log, describeChange, record, records )
 import Commons.Parsing ( parse, unparse )
+import Commons.Solve ( Solution(..) )
 
 -- | A comparison sign: > (Gt) or < (Lt).
 data Sign = Gt | Lt
@@ -348,8 +349,9 @@ subset v = case vec ! i of
 
 -- | Rules to apply to increase the available information on a view. Record
 -- the process.
-shrink :: View -> Log View
-shrink v = (comparison v) >>= unique >>= only >>= subset
+shrink :: View -> Log (Maybe View)
+shrink v = fmap Just $ (comparison v) >>= unique >>= only >>= subset
+-- FIXME: check for impossible grids.
 
 -- | Get the grid behind the given view.
 unview :: View -> Futoshiki
@@ -362,7 +364,7 @@ unview v = F { grid = vgrid v
 solveFutoshiki :: Integral n
                => n               -- ^ Number of iterations before giving up
                -> Futoshiki       -- ^ Initial grid
-               -> Either (Log Futoshiki) (Log Futoshiki)
+               -> Solution Futoshiki
 solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select shrink unview
 
 -- | Parse, solve and unparse a Futoshiki puzzle.
@@ -370,5 +372,6 @@ processFutoshiki :: Integral n => n -> String -> (String, Maybe (Log String))
 processFutoshiki limit input = case fromString input of
   Nothing -> ("unable to parse the input!", Nothing)
   Just f -> case solveFutoshiki limit f of
-    Left f' -> ("unable to solve the puzzle!", Just $ fmap toString f')
-    Right f' -> ("", Just $ fmap toString f')
+    Impossible txt -> (T.unpack txt, Nothing)
+    Partial f' -> ("unable to solve the puzzle!", Just $ fmap toString f')
+    Solved f' -> ("", Just $ fmap toString f')

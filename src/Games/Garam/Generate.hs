@@ -20,6 +20,7 @@ import qualified Data.Vector as V
 import qualified System.Random as R
 import Commons.Digit ( Digit(..) )
 import Commons.Log ( dropLog )
+import Commons.Solve ( Solution(..) )
 import Games.Garam.Solve ( Op(..), Garam, fromElements, getValues, setValue,
                            solveGaram )
 
@@ -90,14 +91,16 @@ generateValues ops nshrink nvalues initGen =
 
     simplify :: Garam -> Garam
     simplify grid = case solveGaram nshrink grid of
-                      Left grid' -> dropLog grid'
-                      Right grid' -> dropLog grid'
+                      Impossible _ -> grid -- FIXME!
+                      Partial grid' -> dropLog grid'
+                      Solved grid' -> dropLog grid'
 
 -- | Test if a grid may be solved in 'niter' iterations.
 validate :: Integral n => n -> Garam -> Bool
 validate niter garam = case solveGaram niter garam of
-                           Left _ -> False
-                           Right _ -> True
+                         Impossible _ -> False
+                         Partial _ -> False
+                         Solved _ -> True
 
 -- | Try to generate a solvable Garam grid with 'nvalues' known at the
 -- beginning. Make only one attempt.

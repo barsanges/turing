@@ -7,26 +7,37 @@ Solve a mathematical puzzle.
 -}
 
 module Commons.Solve
-  ( solve
+  ( Solution(..)
+  , solve
   ) where
 
-import Commons.Log ( Log, (>>*) )
+import Data.Text as T
+import Commons.Log ( Log, (>>*), swap, getLog )
+
+-- | The solution to a mathematical puzzle.
+data Solution grid = Impossible T.Text
+                   | Partial (Log grid)
+                   | Solved (Log grid)
 
 -- | Solve a mathematical puzzle, and record which rules are applied to the
 -- grid.
 solve :: Integral n
-      => n                         -- ^ Number of iterations -- before giving up
-      -> grid                      -- ^ Initial puzzle
-      -> (grid -> Maybe view)      -- ^ Get a part of the puzzle to solve
-      -> (view -> Log view)        -- ^ Rule to use to shrink the grid
-      -> (view -> grid)            -- ^ Get the full puzzle
-      -> Either (Log grid) (Log grid)
+      => n                          -- ^ Number of iterations -- before giving up
+      -> grid                       -- ^ Initial puzzle
+      -> (grid -> Maybe view)       -- ^ Get a part of the puzzle to solve
+      -> (view -> Log (Maybe view)) -- ^ Rule to use to shrink the grid
+      -> (view -> grid)             -- ^ Get the full puzzle
+      -> Solution grid
 solve limit g0 next shrink unview = go 0 (pure g0)
 
   where
 
     go n g = case g >>* next of
-      Nothing -> Right g
+      Nothing -> Solved g
       Just v -> if n > limit
-        then Left g
-        else go (n + 1) (fmap unview $ (v >>= shrink))
+        then Partial g
+        else case swap lv' of
+               Just v' -> go (n + 1) (fmap unview v')
+               Nothing -> Impossible (getLog lv')
+        where
+          lv' = (v >>= shrink)

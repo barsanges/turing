@@ -13,7 +13,7 @@ module Commons.Iterator
 
 import Data.Sequence ( Seq(..), (|>), fromList )
 import Commons.Log ( Log, swap )
-import Commons.Solve ( solve )
+import Commons.Solve ( Solution(..), solve )
 
 -- | Cyclic iterator over an object 'u' indexed by 'a's.
 data It a u = It (Seq a) u
@@ -37,19 +37,20 @@ solveWithIt :: Integral n
             -> grid                           -- ^ Initial puzzle
             -> [a]                            -- ^ Every view's key
             -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
-            -> (view -> Log view)             -- ^ Set of rules to use to shrink the grid
+            -> (view -> Log (Maybe view))     -- ^ Set of rules to use to shrink the grid
             -> (view -> grid)                 -- ^ Get the full puzzle
-            -> Either (Log grid) (Log grid)
+            -> Solution grid
 solveWithIt limit g0 as next shrink unview =
 
   case solve limit (It (fromList as) g0) next' shrink' unview' of
-    Left lit -> let (It _ g) = swap lit
-                in Left g
-    Right lit -> let (It _ g) = swap lit
-                 in Right g
+    Impossible txt -> Impossible txt
+    Partial lit -> let (It _ g) = swap lit
+                   in Partial g
+    Solved lit -> let (It _ g) = swap lit
+                  in Solved g
 
   where
 
     next' = nextIt next
-    shrink' (It as' g) = fmap (It as') (shrink g)
+    shrink' (It as' g) = fmap (fmap (It as')) (shrink g)
     unview' = fmap unview

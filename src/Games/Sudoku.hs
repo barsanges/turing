@@ -251,6 +251,14 @@ shrink :: View -> Log (Maybe View)
 shrink v = fmap Just $ (unique v) >>= only >>= subset
 -- FIXME: check for impossible grids.
 
+-- | Get all views related to the given view.
+otherViews :: View -> [View]
+otherViews _ = [] -- FIXME: not implemented.
+
+-- | Test if a view is correct.
+check :: View -> Bool
+check _ = True -- FIXME: not implemented.
+
 -- | Get the grid behind the given view.
 unview :: View -> Sudoku
 unview v = Sk (grid v)
@@ -260,7 +268,8 @@ solveSudoku :: Integral n
             => n            -- ^ Number of iterations before giving up
             -> Sudoku       -- ^ Initial grid
             -> Solution Sudoku
-solveSudoku limit g0 = solveWithIt limit g0 allViews select shrink unview
+solveSudoku limit g0 =
+  solveWithIt limit g0 allViews select shrink otherViews check unview
 
 -- | Parse, solve and unparse a Sudoku puzzle.
 processSudoku :: Integral n => n -> String -> (String, Maybe (Log String))

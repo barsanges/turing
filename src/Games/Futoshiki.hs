@@ -353,6 +353,14 @@ shrink :: View -> Log (Maybe View)
 shrink v = fmap Just $ (comparison v) >>= unique >>= only >>= subset
 -- FIXME: check for impossible grids.
 
+-- | Get all views related to the given view.
+otherViews :: View -> [View]
+otherViews _ = [] -- FIXME: not implemented.
+
+-- | Test if a view is correct.
+check :: View -> Bool
+check _ = True -- FIXME: not implemented.
+
 -- | Get the grid behind the given view.
 unview :: View -> Futoshiki
 unview v = F { grid = vgrid v
@@ -365,7 +373,8 @@ solveFutoshiki :: Integral n
                => n               -- ^ Number of iterations before giving up
                -> Futoshiki       -- ^ Initial grid
                -> Solution Futoshiki
-solveFutoshiki limit g0 = solveWithIt limit g0 (allViews g0) select shrink unview
+solveFutoshiki limit g0 =
+  solveWithIt limit g0 (allViews g0) select shrink otherViews check unview
 
 -- | Parse, solve and unparse a Futoshiki puzzle.
 processFutoshiki :: Integral n => n -> String -> (String, Maybe (Log String))

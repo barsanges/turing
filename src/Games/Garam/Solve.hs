@@ -69,7 +69,7 @@ data Expr1 = Expr1 Cell' Op Cell' Cell'
 data Expr2 = Expr2 Cell' Op Cell' Cell' Cell'
   deriving Show
 
--- | A equation with an unknown.
+-- | An equation with an unknown.
 data Equation a b = FstLHS1 a
                   | SndLHS1 a
                   | RHS1 a
@@ -241,6 +241,16 @@ fromIdx g idx = case idx of
     vec = grid g
     ops = operators g
 
+-- | Is the index relevant for the given equation?
+elemEq :: Int -> Equation Idx1 Idx2 -> Bool
+elemEq i (FstLHS1 (Idx1 x _ y z)) = i `elem` [x, y, z]
+elemEq i (SndLHS1 (Idx1 x _ y z)) = i `elem` [x, y, z]
+elemEq i (RHS1 (Idx1 x _ y z)) = i `elem` [x, y, z]
+elemEq i (FstLHS2 (Idx2 x _ y z1 z2)) = i `elem` [x, y, z1, z2]
+elemEq i (SndLHS2 (Idx2 x _ y z1 z2)) = i `elem` [x, y, z1, z2]
+elemEq i (FstRHS2 (Idx2 x _ y z1 z2)) = i `elem` [x, y, z1, z2]
+elemEq i (SndRHS2 (Idx2 x _ y z1 z2)) = i `elem` [x, y, z1, z2]
+
 -- | Get the index of the unknown in an equation.
 unknownIdx :: Equation Idx1 Idx2 -> Int
 unknownIdx (FstLHS1 (Idx1 x _ _ _)) = x
@@ -365,6 +375,26 @@ shrink v = record m v'
                 Nothing -> "failed"
             }
 
+-- | Get all views related to the given view.
+others :: View -> [View]
+others v = fmap toView eqs
+  where
+    i = unknownIdx (focus v)
+    eqs = filter (elemEq i) allViews
+    toView f = v { focus = f }
+
+-- | Test if a view is correct.
+check :: View -> Bool
+check v = case fromIdx (unview v) (focus v) of
+  FstLHS1 (Expr1 (Left x) op (Left y) (Left z)) -> (apply1 x op y) == (Just z)
+  SndLHS1 (Expr1 (Left x) op (Left y) (Left z)) -> (apply1 x op y) == (Just z)
+  RHS1 (Expr1 (Left x) op (Left y) (Left z)) -> (apply1 x op y) == (Just z)
+  FstLHS2 (Expr2 (Left x) op (Left y) (Left z1) (Left z2)) -> (apply2 x op y) == Just (z1, z2)
+  SndLHS2 (Expr2 (Left x) op (Left y) (Left z1) (Left z2)) -> (apply2 x op y) == Just (z1, z2)
+  FstRHS2 (Expr2 (Left x) op (Left y) (Left z1) (Left z2)) -> (apply2 x op y) == Just (z1, z2)
+  SndRHS2 (Expr2 (Left x) op (Left y) (Left z1) (Left z2)) -> (apply2 x op y) == Just (z1, z2)
+  _ -> True
+
 -- | Get the grid behind the given view.
 unview :: View -> Garam
 unview v = G { grid = vgrid v
@@ -376,7 +406,8 @@ solveGaram :: Integral n
            => n               -- ^ Number of iterations before giving up
            -> Garam           -- ^ Initial grid
            -> Solution Garam
-solveGaram limit g0 = solveWithIt limit g0 allViews select shrink unview
+solveGaram limit g0 =
+  solveWithIt limit g0 allViews select shrink others check unview
 
 -- | Parse, solve and unparse a Garam puzzle.
 processGaram :: Integral n => n -> String -> (String, Maybe (Log String))

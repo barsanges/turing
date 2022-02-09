@@ -11,8 +11,8 @@ module Commons.Solve
   , solve
   ) where
 
-import Data.Text as T
-import Commons.Log ( Log, (>>*), swap, getLog )
+import qualified Data.Text as T
+import Commons.Log ( Log, (>>*), swap, getLog, dropLog )
 
 -- | The solution to a mathematical puzzle.
 data Solution grid = Impossible T.Text
@@ -27,9 +27,11 @@ solve :: Integral n
       -> grid                       -- ^ Initial puzzle
       -> (grid -> Maybe view)       -- ^ Get a part of the puzzle to solve
       -> (view -> Log (Maybe view)) -- ^ Rule to use to shrink the grid
+      -> (view -> [view])           -- ^ Get all views related to the given view
+      -> (view -> Bool)             -- ^ Test if a view is correct
       -> (view -> grid)             -- ^ Get the full puzzle
       -> Solution grid
-solve limit g0 next shrink unview = go 0 (pure g0)
+solve limit g0 next shrink others check unview = go 0 (pure g0)
 
   where
 
@@ -38,7 +40,9 @@ solve limit g0 next shrink unview = go 0 (pure g0)
       Just v -> if n > limit
         then Partial g
         else case swap lv' of
-               Just v' -> go (n + 1) (fmap unview v')
+               Just v' -> case all check (others $ dropLog v') of
+                            True -> go (n + 1) (fmap unview v')
+                            False -> Impossible (getLog lv')
                Nothing -> Impossible (getLog lv')
         where
           lv' = (v >>= shrink)

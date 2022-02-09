@@ -38,11 +38,13 @@ solveWithIt :: Integral n
             -> [a]                            -- ^ Every view's key
             -> (grid -> a -> Maybe view)      -- ^ Get a part of the puzzle to solve
             -> (view -> Log (Maybe view))     -- ^ Set of rules to use to shrink the grid
+            -> (view -> [view])               -- ^ Get all views related to the given view
+            -> (view -> Bool)                 -- ^ Test if a view is correct
             -> (view -> grid)                 -- ^ Get the full puzzle
             -> Solution grid
-solveWithIt limit g0 as next shrink unview =
+solveWithIt limit g0 as next shrink others check unview =
 
-  case solve limit (It (fromList as) g0) next' shrink' unview' of
+  case solve limit (It (fromList as) g0) next' shrink' others' check' unview' of
     Impossible txt -> Impossible txt
     Partial lit -> let (It _ g) = swap lit
                    in Partial g
@@ -53,4 +55,6 @@ solveWithIt limit g0 as next shrink unview =
 
     next' = nextIt next
     shrink' (It as' g) = fmap (fmap (It as')) (shrink g)
+    others' (It as' g) = fmap (It as') (others g)
+    check' (It _ g) = check g
     unview' = fmap unview

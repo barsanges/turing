@@ -25,3 +25,6 @@ able to solve simple instances of the following games:
       puzzle types.
 
 - [ ] Add generators for Sudoku and Futoshiki.
+
+- [ ] Decouple the resolution/generation and the input/output. This
+      will allow to switch more easily between file formats.

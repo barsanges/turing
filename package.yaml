@@ -15,7 +15,6 @@ dependencies:
 - base
 - containers
 - vector
-- optparse-applicative
 - random
 - text
 
@@ -27,12 +26,14 @@ executables:
     source-dirs:      apps/solve
     main:             Main.hs
     dependencies:
+    - optparse-applicative
     - turing
 
   turing-generate:
     source-dirs:      apps/generate
     main:             Main.hs
     dependencies:
+    - optparse-applicative
     - turing
 
 tests:

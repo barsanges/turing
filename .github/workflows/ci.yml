@@ -5,9 +5,6 @@ on:
 
   pull_request:
 
-  schedule:
-  - cron: '11 13 17 * *'
-
 jobs:
   stack:
     runs-on: ubuntu-latest
